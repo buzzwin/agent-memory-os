@@ -81,7 +81,7 @@ This results in fragile systems and poor user experience.
 - ✅ Working demo with CrewAI integration example
 - ✅ Memory persistence demonstration
 
-#### LangChain Integration ✅ **NEW**
+#### LangChain Integration ✅ **COMPLETE**
 
 - ✅ **MemoryChain** - LangChain chain with automatic memory storage and retrieval
 - ✅ **MemoryTool** - LangChain tool for agents to store facts and search memories
@@ -91,6 +91,19 @@ This results in fragile systems and poor user experience.
 - ✅ **Memory persistence** - Memories survive across sessions and agent restarts
 - ✅ **Semantic search** - Basic text-based search for relevant memories
 - ✅ **Timeline retrieval** - Get chronological history of agent activities
+
+#### LangGraph Integration ✅ **NEW - COMPLETE**
+
+- ✅ **MemoryGraph** - Complete memory-aware LangGraph workflow wrapper
+- ✅ **MemoryState** - State class with memory capabilities for LangGraph
+- ✅ **MemoryNode** - Node that provides memory operations in workflows
+- ✅ **MemoryToolNode** - Tools that can be used in any LangGraph workflow
+- ✅ **create_memory_tools** - Helper function to create memory tools
+- ✅ **Complete integration demo** - 4 comprehensive demos showing different usage patterns
+- ✅ **Memory persistence** - Memories survive across graph executions
+- ✅ **Agent-specific memory isolation** - Each agent/workflow has isolated memory
+- ✅ **ToolNode compatibility** - Works with latest LangGraph ToolNode API
+- ✅ **Dict-based state management** - Maximum compatibility with LangGraph
 
 ### 🚧 **Partially Implemented**
 
@@ -119,7 +132,6 @@ This results in fragile systems and poor user experience.
 #### Integrations
 
 - ❌ Direct CrewAI integration (only example code provided)
-- ❌ Direct LangGraph integration
 - ❌ REST API for remote memory access
 - ❌ Web UI for memory visualization
 
@@ -142,14 +154,14 @@ This results in fragile systems and poor user experience.
 
 ## 🔍 MVP Goal
 
-Enable a basic CrewAI or LangGraph agent to:
+Enable a basic CrewAI, LangChain, or LangGraph agent to:
 
 - ✅ Remember key facts across sessions
 - ✅ Recall specific past interactions (episodic)
 - ✅ Retrieve semantically relevant info when prompted (basic text search)
 - ✅ Track events across time
 
-**✅ MVP COMPLETED** - All core memory functionality is working with LangChain integration!
+**✅ MVP COMPLETED** - All core memory functionality is working with LangChain and LangGraph integrations!
 
 ---
 
@@ -170,15 +182,22 @@ agent-memory-os/
 │   │   └── time_utils.py      # Time formatting utilities
 │   └── integrations/          # Framework integrations
 │       ├── __init__.py
-│       └── langchain/         # LangChain integration
+│       ├── langchain/         # LangChain integration
+│       │   ├── __init__.py
+│       │   ├── memory_chain.py        # MemoryChain class
+│       │   ├── memory_tool.py         # MemoryTool class
+│       │   ├── memory_callback.py     # MemoryCallbackHandler
+│       │   └── memory_agent.py        # MemoryAwareAgent wrapper
+│       └── langgraph/         # LangGraph integration
 │           ├── __init__.py
-│           ├── memory_chain.py        # MemoryChain class
-│           ├── memory_tool.py         # MemoryTool class
-│           ├── memory_callback.py     # MemoryCallbackHandler
-│           └── memory_agent.py        # MemoryAwareAgent wrapper
+│           ├── memory_graph.py        # MemoryGraph class
+│           ├── memory_state.py        # MemoryState class
+│           ├── memory_node.py         # MemoryNode class
+│           └── memory_tool_node.py    # MemoryToolNode class
 ├── examples/                  # Integration examples
 │   ├── crewai_memory_demo.py  # CrewAI integration demo
-│   └── langchain_memory_demo.py # LangChain integration demo
+│   ├── langchain_memory_demo.py # LangChain integration demo
+│   └── langgraph_memory_demo.py # LangGraph integration demo
 ├── tests/                     # Unit tests
 │   ├── __init__.py
 │   └── test_memory.py         # Comprehensive test suite
@@ -218,6 +237,7 @@ results = memory_manager.search_memory("Python")
 ```
 
 ### LangChain Integration
+
 ```python
 from agent_memory_sdk import MemoryChain, MemoryManager
 from langchain_community.llms import OpenAI
@@ -237,13 +257,91 @@ result = memory_chain.invoke({"input": "What do you remember about me?"})
 print(result["output"])
 ```
 
+### LangGraph Integration
+
+```python
+from agent_memory_sdk import MemoryGraph, MemoryManager
+from langgraph.graph import StateGraph, END
+
+# Initialize memory manager
+memory_manager = MemoryManager()
+
+# Create memory-aware graph
+memory_graph = MemoryGraph(
+    memory_manager=memory_manager,
+    agent_id="my_agent",
+    session_id="session_1"
+)
+
+# Create a simple graph
+graph = memory_graph.create_graph()
+
+# Add a processing node
+def process_input(state):
+    input_text = state.get("input", "")
+    memory_graph.memory_manager.add_memory(
+        content=f"Processed: {input_text}",
+        memory_type=MemoryType.EPISODIC,
+        agent_id=memory_graph.agent_id,
+        session_id=memory_graph.session_id
+    )
+    return {"output": f"Processed: {input_text}"}
+
+graph.add_node("process", process_input)
+graph.set_entry_point("process")
+graph.add_edge("process", END)
+
+# Compile and run
+compiled_graph = graph.compile()
+result = compiled_graph.invoke({"input": "Hello, this is my first memory!"})
+```
+
+### Memory Tools in LangGraph
+
+```python
+from agent_memory_sdk import create_memory_tools, MemoryManager
+from langgraph.prebuilt import ToolNode
+from langchain_core.messages import HumanMessage, AIMessage
+import uuid
+
+# Create memory tools
+memory_tools = create_memory_tools(
+    memory_manager=MemoryManager(),
+    agent_id="my_agent"
+)
+
+# Create tool node
+tool_node = ToolNode(memory_tools)
+
+# Use with proper message format
+tool_call = {
+    "name": "store_memory",
+    "args": {"content": "I learned something new", "memory_type": "semantic"},
+    "id": str(uuid.uuid4()),
+    "type": "tool_call"
+}
+
+state = {
+    "messages": [
+        HumanMessage(content="Store a memory"),
+        AIMessage(content="", tool_calls=[tool_call])
+    ]
+}
+
+result = tool_node.invoke(state)
+```
+
 ### Run Demos
+
 ```bash
 # Core memory demo
 python examples/crewai_memory_demo.py
 
 # LangChain integration demo
 python examples/langchain_memory_demo.py
+
+# LangGraph integration demo
+python examples/langgraph_memory_demo.py
 ```
 
 ### Run Tests
@@ -256,18 +354,22 @@ python -m pytest tests/ -v
 
 ## 🔗 Status
 
-🚀 **MVP Complete + LangChain Integration** — Core memory system is working with SQLite storage, comprehensive LangChain integration, and persistent memory across sessions.
+🚀 **MVP Complete + Full Framework Integration** — Core memory system is working with SQLite storage, comprehensive LangChain and LangGraph integrations, and persistent memory across sessions.
 
 **Current Capabilities:**
+
 - ✅ Persistent memory storage and retrieval
 - ✅ LangChain integration with chains, tools, and agents
+- ✅ LangGraph integration with workflows, state management, and tools
 - ✅ Memory-aware responses with context
 - ✅ Timeline and semantic search
 - ✅ Cross-session memory persistence
+- ✅ Agent-specific memory isolation
 
 **Next Milestones:**
+
 1. Implement vector similarity search with proper embedding models
-2. Add CrewAI and LangGraph integrations
+2. Add CrewAI integration
 3. Build REST API for remote access
 4. Create web UI for memory visualization
 
