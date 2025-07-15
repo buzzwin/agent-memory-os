@@ -11,4 +11,29 @@ __author__ = "Agent Memory OS Team"
 from .models import MemoryEntry, MemoryType
 from .memory import MemoryManager
 
-__all__ = ["MemoryManager", "MemoryEntry", "MemoryType"] 
+# LangChain integration
+try:
+    from .integrations.langchain import (
+        MemoryChain,
+        MemoryTool,
+        MemoryCallbackHandler,
+        MemoryAwareAgent
+    )
+    LANGCHAIN_AVAILABLE = True
+except ImportError:
+    LANGCHAIN_AVAILABLE = False
+    MemoryChain = None
+    MemoryTool = None
+    MemoryCallbackHandler = None
+    MemoryAwareAgent = None
+
+__all__ = [
+    "MemoryManager", 
+    "MemoryEntry", 
+    "MemoryType",
+    "MemoryChain",
+    "MemoryTool",
+    "MemoryCallbackHandler", 
+    "MemoryAwareAgent",
+    "LANGCHAIN_AVAILABLE"
+] 
