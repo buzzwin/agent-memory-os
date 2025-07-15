@@ -45,6 +45,22 @@ except ImportError:
     MemoryToolNode = None
     create_memory_tools = None
 
+# REST API integration
+try:
+    from .api import (
+        create_app,
+        MemoryAPI,
+        MemoryAPIClient,
+        AsyncMemoryAPIClient
+    )
+    API_AVAILABLE = True
+except ImportError:
+    API_AVAILABLE = False
+    create_app = None
+    MemoryAPI = None
+    MemoryAPIClient = None
+    AsyncMemoryAPIClient = None
+
 __all__ = [
     "MemoryManager", 
     "MemoryEntry", 
@@ -59,5 +75,10 @@ __all__ = [
     "MemoryNode",
     "MemoryToolNode",
     "create_memory_tools",
-    "LANGGRAPH_AVAILABLE"
+    "LANGGRAPH_AVAILABLE",
+    "create_app",
+    "MemoryAPI",
+    "MemoryAPIClient",
+    "AsyncMemoryAPIClient",
+    "API_AVAILABLE"
 ] 
