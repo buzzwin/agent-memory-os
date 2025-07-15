@@ -5,6 +5,9 @@ numpy
 # LangChain integration
 langchain>=0.1.0
 
+# LangGraph integration
+langgraph>=0.5.0
+
 # Optional dependencies for enhanced functionality
 # sentence-transformers>=2.2.0  # For better embeddings
 # openai>=1.0.0  # For OpenAI integration

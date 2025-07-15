@@ -27,6 +27,24 @@ except ImportError:
     MemoryCallbackHandler = None
     MemoryAwareAgent = None
 
+# LangGraph integration
+try:
+    from .integrations.langgraph import (
+        MemoryGraph,
+        MemoryState,
+        MemoryNode,
+        MemoryToolNode
+    )
+    from .integrations.langgraph.memory_tool_node import create_memory_tools
+    LANGGRAPH_AVAILABLE = True
+except ImportError:
+    LANGGRAPH_AVAILABLE = False
+    MemoryGraph = None
+    MemoryState = None
+    MemoryNode = None
+    MemoryToolNode = None
+    create_memory_tools = None
+
 __all__ = [
     "MemoryManager", 
     "MemoryEntry", 
@@ -35,5 +53,11 @@ __all__ = [
     "MemoryTool",
     "MemoryCallbackHandler", 
     "MemoryAwareAgent",
-    "LANGCHAIN_AVAILABLE"
+    "LANGCHAIN_AVAILABLE",
+    "MemoryGraph",
+    "MemoryState",
+    "MemoryNode",
+    "MemoryToolNode",
+    "create_memory_tools",
+    "LANGGRAPH_AVAILABLE"
 ] 
