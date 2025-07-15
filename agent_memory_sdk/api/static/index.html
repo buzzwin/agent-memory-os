@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Memory OS - Memory Visualization</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-brain"></i>
+                    <h1>Agent Memory OS</h1>
+                </div>
+                <div class="header-actions">
+                    <button id="refreshBtn" class="btn btn-secondary">
+                        <i class="fas fa-sync-alt"></i>
+                        Refresh
+                    </button>
+                    <div class="status-indicator" id="statusIndicator">
+                        <span class="status-dot"></span>
+                        <span class="status-text">Connecting...</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <h3>Quick Stats</h3>
+                    <div class="stats-grid" id="quickStats">
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalMemories">-</div>
+                            <div class="stat-label">Total Memories</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="activeAgents">-</div>
+                            <div class="stat-label">Active Agents</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="avgImportance">-</div>
+                            <div class="stat-label">Avg Importance</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>Memory Types</h3>
+                    <div class="memory-types" id="memoryTypes">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>Top Agents</h3>
+                    <div class="agent-list" id="topAgents">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Panel -->
+            <div class="main-panel">
+                <!-- Tabs -->
+                <div class="tabs">
+                    <button class="tab-btn active" id="memoriesTabBtn">Memories</button>
+                    <button class="tab-btn" id="timelineTabBtn">Timeline</button>
+                </div>
+                <!-- Memories Section -->
+                <div id="memoriesSection">
+                    <!-- Search and Filters -->
+                    <div class="search-section">
+                        <div class="search-bar">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="searchInput" placeholder="Search memories...">
+                            <button id="searchBtn" class="btn btn-primary">Search</button>
+                        </div>
+                        <div class="filters">
+                            <select id="memoryTypeFilter">
+                                <option value="">All Types</option>
+                                <option value="episodic">Episodic</option>
+                                <option value="semantic">Semantic</option>
+                                <option value="temporal">Temporal</option>
+                            </select>
+                            <select id="agentFilter">
+                                <option value="">All Agents</option>
+                            </select>
+                            <input type="range" id="importanceFilter" min="0" max="10" value="0" step="0.5">
+                            <span id="importanceValue">Min: 0</span>
+                        </div>
+                    </div>
+
+                    <!-- Memory List -->
+                    <div class="memory-list-container">
+                        <div class="memory-list-header">
+                            <h2>Memories</h2>
+                            <div class="list-controls">
+                                <select id="sortBy">
+                                    <option value="created_at">Date Created</option>
+                                    <option value="updated_at">Last Updated</option>
+                                    <option value="importance">Importance</option>
+                                    <option value="access_count">Access Count</option>
+                                </select>
+                                <button id="sortOrder" class="btn btn-icon">
+                                    <i class="fas fa-sort-amount-down"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="memory-list" id="memoryList">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                        <div class="pagination" id="pagination">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                <!-- Timeline Section -->
+                <div id="timelineSection" style="display:none;">
+                    <div class="timeline-header">
+                        <h2>Memory Timeline</h2>
+                        <div class="timeline-filters">
+                            <select id="timelineAgentFilter">
+                                <option value="">All Agents</option>
+                            </select>
+                            <select id="timelineTypeFilter">
+                                <option value="">All Types</option>
+                                <option value="episodic">Episodic</option>
+                                <option value="semantic">Semantic</option>
+                                <option value="temporal">Temporal</option>
+                            </select>
+                            <input type="date" id="timelineStart">
+                            <input type="date" id="timelineEnd">
+                            <button class="btn btn-primary" id="timelineFilterBtn">Filter</button>
+                        </div>
+                    </div>
+                    <div class="timeline-container" id="timelineContainer">
+                        <!-- Timeline will be rendered here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Memory Detail Modal -->
+        <div class="modal" id="memoryModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Memory Details</h3>
+                    <button class="modal-close" id="closeModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    <!-- Populated by JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="editMemoryBtn">Edit</button>
+                    <button class="btn btn-danger" id="deleteMemoryBtn">Delete</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Memory Modal -->
+        <div class="modal" id="createModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Create New Memory</h3>
+                    <button class="modal-close" id="closeCreateModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="createMemoryForm">
+                        <div class="form-group">
+                            <label for="memoryContent">Content</label>
+                            <textarea id="memoryContent" required placeholder="Enter memory content..."></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="memoryType">Type</label>
+                                <select id="memoryType" required>
+                                    <option value="episodic">Episodic</option>
+                                    <option value="semantic">Semantic</option>
+                                    <option value="temporal">Temporal</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="memoryImportance">Importance (0-10)</label>
+                                <input type="number" id="memoryImportance" min="0" max="10" step="0.1" value="5.0">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="memoryAgent">Agent ID</label>
+                            <input type="text" id="memoryAgent" placeholder="Optional agent ID">
+                        </div>
+                        <div class="form-group">
+                            <label for="memoryTags">Tags (comma-separated)</label>
+                            <input type="text" id="memoryTags" placeholder="tag1, tag2, tag3">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelCreateBtn">Cancel</button>
+                    <button class="btn btn-primary" id="saveMemoryBtn">Create Memory</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating Action Button -->
+        <button class="fab" id="createMemoryFab">
+            <i class="fas fa-plus"></i>
+        </button>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html> 

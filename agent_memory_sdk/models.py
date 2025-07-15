@@ -29,6 +29,9 @@ class MemoryEntry:
     timestamp: datetime = field(default_factory=datetime.now)
     metadata: Dict[str, Any] = field(default_factory=dict)
     embedding: Optional[List[float]] = None
+    importance: float = 5.0  # Default importance score (0-10)
+    tags: List[str] = field(default_factory=list)  # List of tags
+    last_accessed: Optional[datetime] = None  # Last access timestamp
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert memory entry to dictionary"""
@@ -40,7 +43,10 @@ class MemoryEntry:
             "session_id": self.session_id,
             "timestamp": self.timestamp.isoformat(),
             "metadata": self.metadata,
-            "embedding": self.embedding
+            "embedding": self.embedding,
+            "importance": self.importance,
+            "tags": self.tags,
+            "last_accessed": self.last_accessed.isoformat() if self.last_accessed else None
         }
     
     @classmethod
@@ -54,5 +60,8 @@ class MemoryEntry:
             session_id=data.get("session_id"),
             timestamp=datetime.fromisoformat(data["timestamp"]),
             metadata=data.get("metadata", {}),
-            embedding=data.get("embedding")
+            embedding=data.get("embedding"),
+            importance=data.get("importance", 5.0),
+            tags=data.get("tags", []),
+            last_accessed=datetime.fromisoformat(data["last_accessed"]) if data.get("last_accessed") else None
         ) 

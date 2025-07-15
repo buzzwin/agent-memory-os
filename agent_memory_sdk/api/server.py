@@ -11,6 +11,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends, Query, Path
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from .models import (
     MemoryCreateRequest,
@@ -37,18 +39,23 @@ class MemoryAPI:
     
     def _memory_to_response(self, memory: MemoryEntry) -> MemoryResponse:
         """Convert MemoryEntry to MemoryResponse"""
+        # Handle backward compatibility for old MemoryEntry objects
+        importance = getattr(memory, 'importance', 5.0)
+        tags = getattr(memory, 'tags', [])
+        last_accessed = getattr(memory, 'last_accessed', None)
+        
         return MemoryResponse(
             id=memory.id,
             content=memory.content,
             memory_type=memory.memory_type,
             agent_id=memory.agent_id,
             metadata=memory.metadata,
-            importance=memory.importance,
-            tags=memory.tags,
-            created_at=memory.created_at,
-            updated_at=memory.updated_at,
-            access_count=memory.access_count,
-            last_accessed=memory.last_accessed,
+            importance=importance,
+            tags=tags,
+            created_at=memory.timestamp,  # Use timestamp as created_at
+            updated_at=memory.timestamp,  # Use timestamp as updated_at for now
+            access_count=0,  # Default to 0 since we don't track this yet
+            last_accessed=last_accessed,
         )
     
     def create_memory(self, request: MemoryCreateRequest) -> MemoryResponse:
@@ -176,10 +183,11 @@ class MemoryAPI:
             agent_id = memory.agent_id or "unknown"
             stats["by_agent"][agent_id] = stats["by_agent"].get(agent_id, 0) + 1
             
-            # Count by importance
-            if memory.importance <= 3:
+            # Count by importance (handle backward compatibility)
+            importance = getattr(memory, 'importance', 5.0)
+            if importance <= 3:
                 stats["importance_distribution"]["low"] += 1
-            elif memory.importance <= 7:
+            elif importance <= 7:
                 stats["importance_distribution"]["medium"] += 1
             else:
                 stats["importance_distribution"]["high"] += 1
@@ -235,6 +243,9 @@ def create_app(db_path: str = "agent_memory.db") -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    
+    # Mount static files
+    app.mount("/static", StaticFiles(directory="agent_memory_sdk/api/static"), name="static")
     
     # Health check endpoint
     @app.get("/health", response_model=HealthResponse, tags=["System"])
@@ -318,6 +329,48 @@ def create_app(db_path: str = "agent_memory.db") -> FastAPI:
     async def get_stats():
         """Get memory statistics"""
         return memory_api.get_memory_stats()
+    
+    # Timeline endpoint
+    @app.get("/memories/timeline", tags=["Visualization"])
+    async def get_timeline(
+        agent_id: str = Query(None, description="Filter by agent ID"),
+        memory_type: MemoryType = Query(None, description="Filter by memory type"),
+        start: str = Query(None, description="Start date (YYYY-MM-DD)"),
+        end: str = Query(None, description="End date (YYYY-MM-DD)"),
+        limit: int = Query(200, ge=1, le=1000, description="Maximum number of memories")
+    ):
+        """Get a chronological timeline of memories"""
+        memories = memory_api.memory_manager.get_all_memories()
+        # Filter by agent
+        if agent_id:
+            memories = [m for m in memories if m.agent_id == agent_id]
+        # Filter by type
+        if memory_type:
+            memories = [m for m in memories if m.memory_type == memory_type]
+        # Filter by date range
+        if start:
+            from datetime import datetime
+            start_dt = datetime.fromisoformat(start)
+            memories = [m for m in memories if m.created_at >= start_dt]
+        if end:
+            from datetime import datetime
+            end_dt = datetime.fromisoformat(end)
+            memories = [m for m in memories if m.created_at <= end_dt]
+        # Sort by created_at
+        memories = sorted(memories, key=lambda m: m.created_at)
+        # Limit
+        memories = memories[:limit]
+        # Convert to dicts
+        return {
+            "timeline": [memory_api._memory_to_response(m).dict() for m in memories],
+            "total_count": len(memories)
+        }
+    
+    # Web UI endpoint
+    @app.get("/", tags=["Web UI"])
+    async def web_ui():
+        """Serve the web UI"""
+        return FileResponse("agent_memory_sdk/api/static/index.html")
     
     # List all memories (with pagination)
     @app.get("/memories", tags=["Memories"])

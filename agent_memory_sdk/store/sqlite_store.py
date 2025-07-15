@@ -38,7 +38,10 @@ class SQLiteStore:
                     session_id TEXT,
                     timestamp TEXT NOT NULL,
                     metadata TEXT,
-                    embedding TEXT
+                    embedding TEXT,
+                    importance REAL DEFAULT 5.0,
+                    tags TEXT,
+                    last_accessed TEXT
                 )
             """)
             
@@ -47,6 +50,28 @@ class SQLiteStore:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_agent_id ON memories(agent_id)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_session_id ON memories(session_id)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_timestamp ON memories(timestamp)")
+            
+            # Add new columns if they don't exist (migration)
+            self._migrate_database(conn)
+    
+    def _migrate_database(self, conn):
+        """Migrate database schema to add new columns"""
+        try:
+            # Check if importance column exists
+            cursor = conn.execute("PRAGMA table_info(memories)")
+            columns = [column[1] for column in cursor.fetchall()]
+            
+            if 'importance' not in columns:
+                conn.execute("ALTER TABLE memories ADD COLUMN importance REAL DEFAULT 5.0")
+            
+            if 'tags' not in columns:
+                conn.execute("ALTER TABLE memories ADD COLUMN tags TEXT")
+            
+            if 'last_accessed' not in columns:
+                conn.execute("ALTER TABLE memories ADD COLUMN last_accessed TEXT")
+                
+        except Exception as e:
+            print(f"Warning: Database migration failed: {e}")
     
     def save_memory(self, memory: MemoryEntry) -> bool:
         """
@@ -62,8 +87,8 @@ class SQLiteStore:
             with sqlite3.connect(self.db_path) as conn:
                 conn.execute("""
                     INSERT OR REPLACE INTO memories 
-                    (id, content, memory_type, agent_id, session_id, timestamp, metadata, embedding)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    (id, content, memory_type, agent_id, session_id, timestamp, metadata, embedding, importance, tags, last_accessed)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     memory.id,
                     memory.content,
@@ -72,7 +97,10 @@ class SQLiteStore:
                     memory.session_id,
                     memory.timestamp.isoformat(),
                     json.dumps(memory.metadata),
-                    json.dumps(memory.embedding) if memory.embedding else None
+                    json.dumps(memory.embedding) if memory.embedding else None,
+                    memory.importance,
+                    json.dumps(memory.tags),
+                    memory.last_accessed.isoformat() if memory.last_accessed else None
                 ))
                 return True
         except Exception as e:
@@ -93,7 +121,7 @@ class SQLiteStore:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.execute("""
                     SELECT id, content, memory_type, agent_id, session_id, 
-                           timestamp, metadata, embedding
+                           timestamp, metadata, embedding, importance, tags, last_accessed
                     FROM memories WHERE id = ?
                 """, (memory_id,))
                 
@@ -123,7 +151,7 @@ class SQLiteStore:
         """
         try:
             with sqlite3.connect(self.db_path) as conn:
-                sql = "SELECT id, content, memory_type, agent_id, session_id, timestamp, metadata, embedding FROM memories WHERE 1=1"
+                sql = "SELECT id, content, memory_type, agent_id, session_id, timestamp, metadata, embedding, importance, tags, last_accessed FROM memories WHERE 1=1"
                 params = []
                 
                 if query:
@@ -169,7 +197,7 @@ class SQLiteStore:
         """
         try:
             with sqlite3.connect(self.db_path) as conn:
-                sql = "SELECT id, content, memory_type, agent_id, session_id, timestamp, metadata, embedding FROM memories WHERE 1=1"
+                sql = "SELECT id, content, memory_type, agent_id, session_id, timestamp, metadata, embedding, importance, tags, last_accessed FROM memories WHERE 1=1"
                 params = []
                 
                 if agent_id:
@@ -195,13 +223,29 @@ class SQLiteStore:
     
     def _row_to_memory_entry(self, row) -> MemoryEntry:
         """Convert database row to MemoryEntry"""
-        return MemoryEntry(
-            id=row[0],
-            content=row[1],
-            memory_type=MemoryType(row[2]),
-            agent_id=row[3],
-            session_id=row[4],
-            timestamp=datetime.fromisoformat(row[5]),
-            metadata=json.loads(row[6]) if row[6] else {},
-            embedding=json.loads(row[7]) if row[7] else None
-        ) 
+        # Handle both old and new schema (backward compatibility)
+        if len(row) >= 11:  # New schema with importance, tags, last_accessed
+            return MemoryEntry(
+                id=row[0],
+                content=row[1],
+                memory_type=MemoryType(row[2]),
+                agent_id=row[3],
+                session_id=row[4],
+                timestamp=datetime.fromisoformat(row[5]),
+                metadata=json.loads(row[6]) if row[6] else {},
+                embedding=json.loads(row[7]) if row[7] else None,
+                importance=row[8] if row[8] is not None else 5.0,
+                tags=json.loads(row[9]) if row[9] else [],
+                last_accessed=datetime.fromisoformat(row[10]) if row[10] else None
+            )
+        else:  # Old schema
+            return MemoryEntry(
+                id=row[0],
+                content=row[1],
+                memory_type=MemoryType(row[2]),
+                agent_id=row[3],
+                session_id=row[4],
+                timestamp=datetime.fromisoformat(row[5]),
+                metadata=json.loads(row[6]) if row[6] else {},
+                embedding=json.loads(row[7]) if row[7] else None
+            ) 
