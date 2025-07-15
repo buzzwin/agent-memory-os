@@ -33,9 +33,9 @@ This results in fragile systems and poor user experience.
 **Agent Memory OS** is a developer-first memory framework for agentic systems.
 
 - 🧩 Unified **episodic**, **semantic**, and **temporal** memory
-- 🔁 Works across **LangChain**, **CrewAI**, **LangGraph**, and custom agents
+- 🔁 Works across **LangChain**, **CrewAI**, **LangGraph**, **REST API**, and custom agents
 - 🧠 Designed for **multi-agent collaboration** with shared context
-- 📚 Easily plug into your LLM pipeline via a simple SDK or API
+- 📚 Easily plug into your LLM pipeline via a simple SDK, API, or HTTP
 - ⏱️ Supports time-aware memory recall and timeline reconstruction
 
 ---
@@ -43,7 +43,7 @@ This results in fragile systems and poor user experience.
 ## 🛠️ Who It's For
 
 - AI engineers building assistants, copilots, and autonomous workflows
-- Teams using LangGraph, CrewAI, or LangChain
+- Teams using LangGraph, CrewAI, LangChain, or REST APIs
 - Developers building apps that need persistent, evolving memory
 
 ---
@@ -105,6 +105,16 @@ This results in fragile systems and poor user experience.
 - ✅ **ToolNode compatibility** - Works with latest LangGraph ToolNode API
 - ✅ **Dict-based state management** - Maximum compatibility with LangGraph
 
+#### REST API Integration ✅ **NEW - COMPLETE**
+
+- ✅ **FastAPI-based REST API** for remote memory access
+- ✅ **Full CRUD**: create, update, delete, search, and list memories
+- ✅ **Agent-specific endpoints** and statistics
+- ✅ **Health and status endpoints**
+- ✅ **Python client library** (`MemoryAPIClient`, `AsyncMemoryAPIClient`)
+- ✅ **Comprehensive demo** (`examples/api_demo.py`)
+- ✅ **Interactive docs** at `/docs` and `/redoc`
+
 ### 🚧 **Partially Implemented**
 
 #### Semantic Search
@@ -132,7 +142,6 @@ This results in fragile systems and poor user experience.
 #### Integrations
 
 - ❌ Direct CrewAI integration (only example code provided)
-- ❌ REST API for remote memory access
 - ❌ Web UI for memory visualization
 
 #### Storage Backends
@@ -154,14 +163,15 @@ This results in fragile systems and poor user experience.
 
 ## 🔍 MVP Goal
 
-Enable a basic CrewAI, LangChain, or LangGraph agent to:
+Enable a basic CrewAI, LangChain, LangGraph, or REST API agent to:
 
 - ✅ Remember key facts across sessions
 - ✅ Recall specific past interactions (episodic)
 - ✅ Retrieve semantically relevant info when prompted (basic text search)
 - ✅ Track events across time
+- ✅ Access and manage memory remotely via HTTP or Python client
 
-**✅ MVP COMPLETED** - All core memory functionality is working with LangChain and LangGraph integrations!
+**✅ MVP COMPLETED** - All core memory functionality is working with LangChain, LangGraph, and REST API integrations!
 
 ---
 
@@ -180,6 +190,11 @@ agent-memory-os/
 │   │   ├── __init__.py
 │   │   ├── embedding_utils.py # Embedding generation and similarity
 │   │   └── time_utils.py      # Time formatting utilities
+│   ├── api/                   # REST API (FastAPI server, client, models)
+│   │   ├── __init__.py
+│   │   ├── server.py          # FastAPI app and endpoints
+│   │   ├── models.py          # Pydantic models for API
+│   │   └── client.py          # Python/async client for API
 │   └── integrations/          # Framework integrations
 │       ├── __init__.py
 │       ├── langchain/         # LangChain integration
@@ -197,7 +212,8 @@ agent-memory-os/
 ├── examples/                  # Integration examples
 │   ├── crewai_memory_demo.py  # CrewAI integration demo
 │   ├── langchain_memory_demo.py # LangChain integration demo
-│   └── langgraph_memory_demo.py # LangGraph integration demo
+│   ├── langgraph_memory_demo.py # LangGraph integration demo
+│   └── api_demo.py            # REST API demo (HTTP, client, async)
 ├── tests/                     # Unit tests
 │   ├── __init__.py
 │   └── test_memory.py         # Comprehensive test suite
@@ -217,7 +233,52 @@ cd agent-memory-os
 pip install -r requirements.txt
 ```
 
-### Basic Usage
+### Run the REST API Server
+
+```bash
+python run_api.py --host 127.0.0.1 --port 8000
+```
+
+- Docs: http://127.0.0.1:8000/docs
+- Health: http://127.0.0.1:8000/health
+
+### Use the Python Client
+
+```python
+from agent_memory_sdk.api import MemoryAPIClient
+from agent_memory_sdk.api.models import MemoryCreateRequest
+from agent_memory_sdk.models import MemoryType
+
+with MemoryAPIClient("http://localhost:8000") as client:
+    req = MemoryCreateRequest(content="Hello", memory_type=MemoryType.SEMANTIC)
+    memory = client.create_memory(req)
+    print(memory)
+```
+
+### Use the Async Python Client
+
+```python
+import asyncio
+from agent_memory_sdk.api import AsyncMemoryAPIClient
+from agent_memory_sdk.api.models import MemoryCreateRequest
+from agent_memory_sdk.models import MemoryType
+
+async def main():
+    async with AsyncMemoryAPIClient("http://localhost:8000") as client:
+        req = MemoryCreateRequest(content="Async hello", memory_type=MemoryType.EPISODIC)
+        memory = await client.create_memory(req)
+        print(memory)
+
+asyncio.run(main())
+```
+
+### Try the REST API Demo
+
+```bash
+python examples/api_demo.py
+```
+
+### Basic Usage (SDK)
 
 ```python
 from agent_memory_sdk import MemoryManager, MemoryType
@@ -342,6 +403,9 @@ python examples/langchain_memory_demo.py
 
 # LangGraph integration demo
 python examples/langgraph_memory_demo.py
+
+# REST API demo
+python examples/api_demo.py
 ```
 
 ### Run Tests
@@ -354,13 +418,14 @@ python -m pytest tests/ -v
 
 ## 🔗 Status
 
-🚀 **MVP Complete + Full Framework Integration** — Core memory system is working with SQLite storage, comprehensive LangChain and LangGraph integrations, and persistent memory across sessions.
+🚀 **MVP Complete + Full Framework Integration** — Core memory system is working with SQLite storage, comprehensive LangChain, LangGraph, and REST API integrations, and persistent memory across sessions.
 
 **Current Capabilities:**
 
 - ✅ Persistent memory storage and retrieval
 - ✅ LangChain integration with chains, tools, and agents
 - ✅ LangGraph integration with workflows, state management, and tools
+- ✅ REST API for remote memory access (HTTP, Python, async)
 - ✅ Memory-aware responses with context
 - ✅ Timeline and semantic search
 - ✅ Cross-session memory persistence
@@ -370,8 +435,7 @@ python -m pytest tests/ -v
 
 1. Implement vector similarity search with proper embedding models
 2. Add CrewAI integration
-3. Build REST API for remote access
-4. Create web UI for memory visualization
+3. Create web UI for memory visualization
 
 ---
 
