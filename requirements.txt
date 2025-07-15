@@ -1,0 +1,15 @@
+# Core dependencies
+numpy
+# sqlite3 is built-in with Python, no need to install via pip
+
+# Optional dependencies for enhanced functionality
+# sentence-transformers>=2.2.0  # For better embeddings
+# openai>=1.0.0  # For OpenAI integration
+# crewai>=0.1.0  # For CrewAI integration
+# langchain>=0.1.0  # For LangChain integration
+
+# Development dependencies
+pytest>=7.0.0
+black>=22.0.0
+flake8>=5.0.0
+mypy>=1.0.0
