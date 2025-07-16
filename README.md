@@ -130,9 +130,11 @@ This results in fragile systems and poor user experience.
 
 #### Semantic Search
 
-- ⚠️ Basic text-based search implemented
-- ⚠️ Embedding generation exists but uses simple hash-based approach
-- ⚠️ No vector similarity search yet (embeddings stored but not used for search)
+- ✅ **Vector similarity search** with Pinecone integration
+- ✅ **Model-based embeddings** using `llama-text-embed-v2` (1024 dimensions)
+- ✅ **High-quality semantic search** across all memory types
+- ✅ **Fallback text search** for SQLite backend
+- ✅ **Cosine similarity** calculations for relevance scoring
 
 #### LangChain Integration
 
@@ -157,6 +159,11 @@ This results in fragile systems and poor user experience.
 #### Storage Backends
 
 - ✅ **Pinecone Integration** - Vector database with semantic search
+  - ✅ Model-based embeddings with `llama-text-embed-v2`
+  - ✅ 1024-dimensional vectors for high-quality semantic search
+  - ✅ Automatic index creation and management
+  - ✅ Cross-session memory persistence
+  - ✅ Full CRUD operations with metadata
 - ✅ **Store Factory** - Adapter pattern for multiple backends
 - ✅ **Auto-detection** - Automatically chooses SQLite or Pinecone
 - ❌ PostgreSQL backend
@@ -367,6 +374,13 @@ export PINECONE_ENVIRONMENT="your-environment"
 python examples/pinecone_memory_demo.py
 ```
 
+**Features demonstrated:**
+
+- Model-based embeddings with `llama-text-embed-v2`
+- High-quality semantic search
+- Memory persistence across sessions
+- Comparison between SQLite and Pinecone backends
+
 ### LangChain Integration
 
 ```python
@@ -484,6 +498,19 @@ python examples/web_ui_demo.py
 python examples/pinecone_memory_demo.py
 ```
 
+### Debug and Maintenance Tools
+
+```bash
+# Debug Pinecone configuration
+python debug_pinecone.py
+
+# Debug Pinecone search functionality
+python debug_pinecone_search.py
+
+# Clean up old Pinecone indexes
+python cleanup_pinecone.py
+```
+
 ### Run Tests
 
 ```bash
@@ -494,7 +521,7 @@ python -m pytest tests/ -v
 
 ## 🔗 Status
 
-🚀 **MVP Complete + Full Framework Integration** — Core memory system is working with SQLite storage, comprehensive LangChain, LangGraph, and REST API integrations, and persistent memory across sessions.
+🚀 **MVP Complete + Full Framework Integration + Vector Search** — Core memory system is working with SQLite and Pinecone storage, comprehensive LangChain, LangGraph, and REST API integrations, persistent memory across sessions, and high-quality semantic search capabilities.
 
 **Current Capabilities:**
 
@@ -507,11 +534,14 @@ python -m pytest tests/ -v
 - ✅ Timeline and semantic search
 - ✅ Cross-session memory persistence
 - ✅ Agent-specific memory isolation
+- ✅ **Vector similarity search** with Pinecone integration
+- ✅ **Model-based embeddings** for high-quality semantic search
 
 **Next Milestones:**
 
-1. Implement vector similarity search with proper embedding models
-2. Add CrewAI integration
+1. Add CrewAI integration
+2. Implement memory compression and summarization
+3. Add memory importance scoring
 
 ---
 
