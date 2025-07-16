@@ -72,6 +72,20 @@ def cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
     return dot_product / (norm1 * norm2)
 
 
+def calculate_similarity(vec1: List[float], vec2: List[float]) -> float:
+    """
+    Calculate similarity between two vectors (alias for cosine_similarity)
+    
+    Args:
+        vec1: First vector
+        vec2: Second vector
+        
+    Returns:
+        Similarity score between -1 and 1
+    """
+    return cosine_similarity(vec1, vec2)
+
+
 def find_similar_embeddings(query_embedding: List[float], 
                           embeddings: List[List[float]], 
                           threshold: float = 0.5) -> List[int]:

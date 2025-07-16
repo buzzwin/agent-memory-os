@@ -144,7 +144,7 @@ class TestMemoryManager:
     def test_memory_manager_initialization(self):
         """Test memory manager initialization"""
         manager = MemoryManager()
-        assert manager.store_backend == "sqlite"
+        assert manager.store_type == "sqlite"
     
     def test_add_memory(self):
         """Test adding memory through manager"""

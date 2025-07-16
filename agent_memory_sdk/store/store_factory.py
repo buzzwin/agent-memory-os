@@ -10,6 +10,7 @@ from typing import Optional
 from .base_store import BaseStore
 from .sqlite_store import SQLiteStore
 from .pinecone_store import PineconeStore
+from .postgresql_store import PostgreSQLStore
 
 
 class StoreFactory:
@@ -29,7 +30,9 @@ class StoreFactory:
         """
         # Auto-detect store type if not specified
         if not store_type:
-            if os.getenv("PINECONE_API_KEY"):
+            if os.getenv("POSTGRESQL_HOST") or os.getenv("POSTGRESQL_CONNECTION_STRING"):
+                store_type = "postgresql"
+            elif os.getenv("PINECONE_API_KEY"):
                 store_type = "pinecone"
             else:
                 store_type = "sqlite"
@@ -50,13 +53,25 @@ class StoreFactory:
                 index_name=index_name
             )
         
+        elif store_type == "postgresql":
+            connection_string = kwargs.get("connection_string")
+            return PostgreSQLStore(connection_string=connection_string, **kwargs)
+        
         else:
-            raise ValueError(f"Unknown store type: {store_type}. Supported types: sqlite, pinecone")
+            raise ValueError(f"Unknown store type: {store_type}. Supported types: sqlite, pinecone, postgresql")
     
     @staticmethod
     def get_available_stores() -> list:
         """Get list of available store types"""
         stores = ["sqlite"]
+        
+        # Check if PostgreSQL is available
+        try:
+            import psycopg2
+            if os.getenv("POSTGRESQL_HOST") or os.getenv("POSTGRESQL_CONNECTION_STRING"):
+                stores.append("postgresql")
+        except ImportError:
+            pass
         
         # Check if Pinecone is available
         try:

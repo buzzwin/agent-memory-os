@@ -164,11 +164,16 @@ This results in fragile systems and poor user experience.
   - ✅ Automatic index creation and management
   - ✅ Cross-session memory persistence
   - ✅ Full CRUD operations with metadata
+- ✅ **PostgreSQL Integration** - Production-ready relational database
+  - ✅ Full-text search with PostgreSQL's tsvector/tsquery
+  - ✅ JSONB support for flexible metadata storage
+  - ✅ ACID compliance and transaction support
+  - ✅ High-performance indexing and querying
+  - ✅ Scalable for large memory datasets
 - ✅ **Store Factory** - Adapter pattern for multiple backends
-- ✅ **Auto-detection** - Automatically chooses SQLite or Pinecone
-- ❌ PostgreSQL backend
+- ✅ **Auto-detection** - Automatically chooses SQLite, PostgreSQL, or Pinecone
 - ❌ Redis backend
-- ❌ Other vector databases (Weaviate, Qdrant, etc.)clear
+- ❌ Other vector databases (Weaviate, Qdrant, etc.)
 - ❌ Cloud storage options
 
 #### Advanced Memory Features
@@ -385,6 +390,35 @@ export PINECONE_ENVIRONMENT="your-environment"
 memory_manager = MemoryManager(store_type="pinecone", index_name="my-memories")
 ```
 
+#### PostgreSQL (Production - Relational Database)
+
+```bash
+# Set environment variables
+export POSTGRESQL_HOST="localhost"
+export POSTGRESQL_PORT="5432"
+export POSTGRESQL_DATABASE="agent_memory"
+export POSTGRESQL_USER="postgres"
+export POSTGRESQL_PASSWORD="your_password"
+
+# OR use connection string
+export POSTGRESQL_CONNECTION_STRING="postgresql://user:pass@host:port/db"
+```
+
+```python
+# PostgreSQL storage with full-text search
+memory_manager = MemoryManager(store_type="postgresql")
+
+# Or with explicit connection parameters
+memory_manager = MemoryManager(
+    store_type="postgresql",
+    host="localhost",
+    port="5432",
+    database="agent_memory",
+    user="postgres",
+    password="your_password"
+)
+```
+
 ### Try the Pinecone Demo
 
 ```bash
@@ -520,6 +554,9 @@ python examples/web_ui_demo.py
 
 # Pinecone integration demo (requires Pinecone credentials)
 python examples/pinecone_memory_demo.py
+
+# PostgreSQL integration demo (requires PostgreSQL server)
+python examples/postgresql_memory_demo.py
 ```
 
 **Demo Features:**
@@ -530,6 +567,7 @@ python examples/pinecone_memory_demo.py
 - 🌐 **API Demo**: HTTP client, async client, and REST endpoints
 - 🎨 **Web UI Demo**: Interactive web interface with sample data
 - 🌲 **Pinecone Demo**: Vector search with semantic embeddings
+- 🐘 **PostgreSQL Demo**: Full-text search with relational database
 
 ### Debug and Maintenance Tools
 
@@ -565,12 +603,19 @@ python -m pytest tests/ -v
    - Use supported environment: `export PINECONE_ENVIRONMENT="gcp-starter"`
    - Run debug script: `python debug_pinecone.py`
 
-3. **API server startup errors**
+3. **PostgreSQL connection errors**
+
+   - Install driver: `pip install psycopg2-binary`
+   - Set environment variables: `export POSTGRESQL_HOST="localhost"`
+   - Create database: `createdb agent_memory`
+   - Check connection: `psql -h localhost -U postgres -d agent_memory`
+
+4. **API server startup errors**
 
    - ✅ **Fixed**: MemoryManager initialization now properly handles store types
    - Ensure you're in the project root: `python run_api.py --host 127.0.0.1 --port 8000`
 
-4. **Memory search returning 0 results**
+5. **Memory search returning 0 results**
    - Check if memories were saved successfully
    - Run debug script: `python debug_pinecone_search.py`
    - Clean up old indexes: `python cleanup_pinecone.py`
