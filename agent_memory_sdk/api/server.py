@@ -33,7 +33,8 @@ class MemoryAPI:
     """Main API class for memory operations"""
     
     def __init__(self, db_path: str = "agent_memory.db"):
-        self.memory_manager = MemoryManager(db_path)
+        # Initialize memory manager with SQLite store and the specified db_path
+        self.memory_manager = MemoryManager(store_type="sqlite", db_path=db_path)
         self.start_time = time.time()
         self.version = "1.0.0"
     

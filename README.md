@@ -168,7 +168,7 @@ This results in fragile systems and poor user experience.
 - ✅ **Auto-detection** - Automatically chooses SQLite or Pinecone
 - ❌ PostgreSQL backend
 - ❌ Redis backend
-- ❌ Other vector databases (Weaviate, Qdrant, etc.)
+- ❌ Other vector databases (Weaviate, Qdrant, etc.)clear
 - ❌ Cloud storage options
 
 #### Advanced Memory Features
@@ -264,11 +264,23 @@ pip install -r requirements.txt
 ### Run the REST API Server
 
 ```bash
+# Run from the project root directory
 python run_api.py --host 127.0.0.1 --port 8000
 ```
 
-- Docs: http://127.0.0.1:8000/docs
-- Health: http://127.0.0.1:8000/health
+**API Endpoints:**
+
+- 📚 **Docs**: http://127.0.0.1:8000/docs (Interactive API documentation)
+- 🔍 **ReDoc**: http://127.0.0.1:8000/redoc (Alternative API docs)
+- ❤️ **Health**: http://127.0.0.1:8000/health (Server status)
+- 🎨 **Web UI**: http://127.0.0.1:8000 (Interactive web interface)
+
+**Features:**
+
+- Full CRUD operations for memories
+- Semantic search and filtering
+- Agent-specific endpoints
+- Real-time statistics and health monitoring
 
 ### Use the Python Client
 
@@ -309,14 +321,24 @@ python examples/api_demo.py
 ### Try the Web UI Demo
 
 ```bash
+# Run from any directory - the script will automatically find the project root
 python examples/web_ui_demo.py
 ```
 
 This will:
 
-1. Create sample memory data
-2. Launch the web UI server
-3. Open your browser to http://localhost:8000
+1. **Create sample memory data** with various types and agents
+2. **Launch the web UI server** at http://localhost:8000
+3. **Open your browser** automatically to the web interface
+4. **Show interactive features** like search, filtering, and memory management
+
+**Web UI Features:**
+
+- 📊 Real-time memory statistics and breakdowns
+- 🔍 Interactive search and filtering by type, agent, and importance
+- 📝 Create and delete memories directly from the interface
+- 📱 Responsive design for desktop and mobile
+- 🔄 Auto-refresh and live updates
 
 ### Basic Usage (SDK)
 
@@ -479,7 +501,9 @@ result = tool_node.invoke(state)
 ### Run Demos
 
 ```bash
-# Core memory demo
+# All demos can be run from any directory - they'll automatically find the project root
+
+# Core memory demo (SQLite backend)
 python examples/crewai_memory_demo.py
 
 # LangChain integration demo
@@ -488,15 +512,24 @@ python examples/langchain_memory_demo.py
 # LangGraph integration demo
 python examples/langgraph_memory_demo.py
 
-# REST API demo
+# REST API demo (tests HTTP client and async client)
 python examples/api_demo.py
 
-# Web UI demo
+# Web UI demo (creates sample data and launches web interface)
 python examples/web_ui_demo.py
 
-# Pinecone integration demo
+# Pinecone integration demo (requires Pinecone credentials)
 python examples/pinecone_memory_demo.py
 ```
+
+**Demo Features:**
+
+- 🧠 **Core Demo**: Basic memory operations with SQLite
+- 🔗 **LangChain Demo**: Memory-aware chains, tools, and agents
+- 📊 **LangGraph Demo**: Memory integration with workflows and state
+- 🌐 **API Demo**: HTTP client, async client, and REST endpoints
+- 🎨 **Web UI Demo**: Interactive web interface with sample data
+- 🌲 **Pinecone Demo**: Vector search with semantic embeddings
 
 ### Debug and Maintenance Tools
 
@@ -517,6 +550,31 @@ python cleanup_pinecone.py
 python -m pytest tests/ -v
 ```
 
+### Troubleshooting
+
+**Common Issues:**
+
+1. **"run_api.py not found" error**
+
+   - ✅ **Fixed**: All demo scripts now automatically find the project root
+   - Run demos from any directory: `python examples/web_ui_demo.py`
+
+2. **Pinecone connection errors**
+
+   - Set environment variables: `export PINECONE_API_KEY="your-key"`
+   - Use supported environment: `export PINECONE_ENVIRONMENT="gcp-starter"`
+   - Run debug script: `python debug_pinecone.py`
+
+3. **API server startup errors**
+
+   - ✅ **Fixed**: MemoryManager initialization now properly handles store types
+   - Ensure you're in the project root: `python run_api.py --host 127.0.0.1 --port 8000`
+
+4. **Memory search returning 0 results**
+   - Check if memories were saved successfully
+   - Run debug script: `python debug_pinecone_search.py`
+   - Clean up old indexes: `python cleanup_pinecone.py`
+
 ---
 
 ## 🔗 Status
@@ -536,6 +594,8 @@ python -m pytest tests/ -v
 - ✅ Agent-specific memory isolation
 - ✅ **Vector similarity search** with Pinecone integration
 - ✅ **Model-based embeddings** for high-quality semantic search
+- ✅ **Robust demo scripts** that work from any directory
+- ✅ **Comprehensive debugging tools** for troubleshooting
 
 **Next Milestones:**
 

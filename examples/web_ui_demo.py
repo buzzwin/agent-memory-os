@@ -141,7 +141,7 @@ def create_sample_data():
     print(f"   - {len(other_agents)} other agent memories")
 
 
-def launch_web_ui():
+def launch_web_ui(run_api_path):
     """Launch the web UI server"""
     print("\n🚀 Launching Web UI server...")
     print("📍 Server will be available at: http://localhost:8000")
@@ -170,7 +170,7 @@ def launch_web_ui():
     # Start the server
     try:
         subprocess.run([
-            sys.executable, "run_api.py", 
+            sys.executable, str(run_api_path), 
             "--host", "127.0.0.1", 
             "--port", "8000"
         ])
@@ -183,9 +183,14 @@ def main():
     print("🎨 Agent Memory OS - Web UI Demo")
     print("=" * 50)
     
-    # Check if we're in the right directory
-    if not Path("run_api.py").exists():
+    # Check if we're in the right directory and find run_api.py
+    script_dir = Path(__file__).parent
+    project_root = script_dir.parent
+    run_api_path = project_root / "run_api.py"
+    
+    if not run_api_path.exists():
         print("❌ Error: run_api.py not found!")
+        print(f"   Looked for: {run_api_path}")
         print("   Please run this script from the project root directory.")
         return
     
@@ -193,7 +198,7 @@ def main():
     create_sample_data()
     
     # Launch web UI
-    launch_web_ui()
+    launch_web_ui(run_api_path)
 
 
 if __name__ == "__main__":
