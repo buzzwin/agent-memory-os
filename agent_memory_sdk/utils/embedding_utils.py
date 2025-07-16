@@ -35,11 +35,11 @@ def generate_embedding(text: str, model: str = "simple") -> List[float]:
                 value = int(chunk, 16) / (16**8 - 1) * 2 - 1
                 embedding.append(value)
         
-        # Pad or truncate to 384 dimensions
-        while len(embedding) < 384:
-            embedding.extend(embedding[:min(384 - len(embedding), len(embedding))])
+        # Pad or truncate to 1024 dimensions (for llama-text-embed-v2 compatibility)
+        while len(embedding) < 1024:
+            embedding.extend(embedding[:min(1024 - len(embedding), len(embedding))])
         
-        return embedding[:384]
+        return embedding[:1024]
     
     else:
         raise ValueError(f"Unsupported embedding model: {model}")

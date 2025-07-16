@@ -9,23 +9,31 @@ from typing import Dict, List, Optional, Any
 import sqlite3
 
 from .models import MemoryEntry, MemoryType
-from .store import SQLiteStore
+from .store.store_factory import StoreFactory
+from .store.sqlite_store import SQLiteStore
+from .store.pinecone_store import PineconeStore
 from .utils.embedding_utils import generate_embedding
 
 
 class MemoryManager:
     """Main memory management class for Agent Memory OS"""
     
-    def __init__(self, store_backend: Optional[str] = None, db_path: str = "agent_memory.db"):
+    def __init__(self, store_type: Optional[str] = None, **store_kwargs):
         """
         Initialize memory manager
         
         Args:
-            store_backend: Backend storage type (default: SQLite)
-            db_path: Path to database file (for SQLite)
+            store_type: Type of store ('sqlite', 'pinecone', or None for auto-detect)
+            **store_kwargs: Additional arguments for the store (e.g., db_path for SQLite)
         """
-        self.store_backend = store_backend or "sqlite"
-        self._store = SQLiteStore(db_path)
+        self._store = StoreFactory.create_store(store_type, **store_kwargs)
+        # Set store type based on the actual store created
+        if isinstance(self._store, SQLiteStore):
+            self.store_type = "sqlite"
+        elif isinstance(self._store, PineconeStore):
+            self.store_type = "pinecone"
+        else:
+            self.store_type = "unknown"
         
     def add_memory(self, content: str, memory_type: MemoryType = MemoryType.EPISODIC,
                    agent_id: Optional[str] = None, session_id: Optional[str] = None,
@@ -109,7 +117,8 @@ class MemoryManager:
     
     def get_timeline(self, agent_id: Optional[str] = None,
                     start_time: Optional[datetime] = None,
-                    end_time: Optional[datetime] = None) -> List[MemoryEntry]:
+                    end_time: Optional[datetime] = None,
+                    limit: int = 100) -> List[MemoryEntry]:
         """
         Get temporal timeline of memories
         
@@ -117,6 +126,7 @@ class MemoryManager:
             agent_id: Filter by agent ID
             start_time: Start of time range
             end_time: End of time range
+            limit: Maximum number of results
             
         Returns:
             List of MemoryEntry objects in chronological order
@@ -124,7 +134,8 @@ class MemoryManager:
         return self._store.get_timeline(
             agent_id=agent_id,
             start_time=start_time,
-            end_time=end_time
+            end_time=end_time,
+            limit=limit
         )
     
     def get_memory(self, memory_id: str) -> Optional[MemoryEntry]:

@@ -6,14 +6,16 @@ Provides persistent storage using SQLite database.
 
 import sqlite3
 import json
+import sqlite3
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from pathlib import Path
 
 from ..models import MemoryEntry, MemoryType
+from .base_store import BaseStore
 
 
-class SQLiteStore:
+class SQLiteStore(BaseStore):
     """SQLite-based storage backend for memory entries"""
     
     def __init__(self, db_path: str = "agent_memory.db"):
@@ -239,13 +241,43 @@ class SQLiteStore:
                 last_accessed=datetime.fromisoformat(row[10]) if row[10] else None
             )
         else:  # Old schema
-            return MemoryEntry(
-                id=row[0],
-                content=row[1],
-                memory_type=MemoryType(row[2]),
-                agent_id=row[3],
-                session_id=row[4],
-                timestamp=datetime.fromisoformat(row[5]),
-                metadata=json.loads(row[6]) if row[6] else {},
-                embedding=json.loads(row[7]) if row[7] else None
-            ) 
+                            return MemoryEntry(
+                    id=row[0],
+                    content=row[1],
+                    memory_type=MemoryType(row[2]),
+                    agent_id=row[3],
+                    session_id=row[4],
+                    timestamp=datetime.fromisoformat(row[5]),
+                    metadata=json.loads(row[6]) if row[6] else {},
+                    embedding=json.loads(row[7]) if row[7] else None
+                )
+    
+    def delete_memory(self, memory_id: str) -> bool:
+        """
+        Delete a memory by ID
+        
+        Args:
+            memory_id: ID of the memory to delete
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute("DELETE FROM memories WHERE id = ?", (memory_id,))
+                return cursor.rowcount > 0
+        except Exception as e:
+            print(f"Error deleting memory: {e}")
+            return False
+    
+    def get_all_memories(self, limit: int = 10000) -> List[MemoryEntry]:
+        """
+        Get all memories in the system
+        
+        Args:
+            limit: Maximum number of memories to retrieve
+            
+        Returns:
+            List of all MemoryEntry objects
+        """
+        return self.search_memories(limit=limit) 

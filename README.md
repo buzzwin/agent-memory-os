@@ -156,9 +156,12 @@ This results in fragile systems and poor user experience.
 
 #### Storage Backends
 
+- ✅ **Pinecone Integration** - Vector database with semantic search
+- ✅ **Store Factory** - Adapter pattern for multiple backends
+- ✅ **Auto-detection** - Automatically chooses SQLite or Pinecone
 - ❌ PostgreSQL backend
 - ❌ Redis backend
-- ❌ Vector databases (Pinecone, Weaviate, etc.)
+- ❌ Other vector databases (Weaviate, Qdrant, etc.)
 - ❌ Cloud storage options
 
 #### Advanced Memory Features
@@ -195,7 +198,10 @@ agent-memory-os/
 │   ├── models.py              # Data models (MemoryEntry, MemoryType)
 │   ├── store/                 # Storage backends
 │   │   ├── __init__.py
-│   │   └── sqlite_store.py    # SQLite storage implementation
+│   │   ├── base_store.py      # Abstract base class
+│   │   ├── sqlite_store.py    # SQLite storage implementation
+│   │   ├── pinecone_store.py  # Pinecone vector storage
+│   │   └── store_factory.py   # Store factory for backend selection
 │   ├── utils/                 # Utility functions
 │   │   ├── __init__.py
 │   │   ├── embedding_utils.py # Embedding generation and similarity
@@ -300,6 +306,7 @@ python examples/web_ui_demo.py
 ```
 
 This will:
+
 1. Create sample memory data
 2. Launch the web UI server
 3. Open your browser to http://localhost:8000
@@ -309,18 +316,55 @@ This will:
 ```python
 from agent_memory_sdk import MemoryManager, MemoryType
 
-# Initialize memory manager
+# Initialize memory manager (auto-detects SQLite or Pinecone)
 memory_manager = MemoryManager()
 
 # Add memories
 memory_manager.add_memory(
     content="User prefers Python programming",
     memory_type=MemoryType.SEMANTIC,
-    agent_id="my_agent"
+    agent_id="my_agent",
+    importance=8.0,
+    tags=["preference", "programming"]
 )
 
-# Search memories
+# Search memories (semantic search with Pinecone, text search with SQLite)
 results = memory_manager.search_memory("Python")
+```
+
+### Storage Backends
+
+The system supports multiple storage backends:
+
+#### SQLite (Default - Local)
+
+```python
+# Local SQLite storage
+memory_manager = MemoryManager(store_type="sqlite", db_path="memories.db")
+```
+
+#### Pinecone (Cloud - Vector Search)
+
+```bash
+# Set environment variables
+export PINECONE_API_KEY="your-api-key"
+export PINECONE_ENVIRONMENT="your-environment"
+```
+
+```python
+# Pinecone vector storage with semantic search
+memory_manager = MemoryManager(store_type="pinecone", index_name="my-memories")
+```
+
+### Try the Pinecone Demo
+
+```bash
+# Set your Pinecone credentials
+export PINECONE_API_KEY="your-api-key"
+export PINECONE_ENVIRONMENT="your-environment"
+
+# Run the demo
+python examples/pinecone_memory_demo.py
 ```
 
 ### LangChain Integration
@@ -435,6 +479,9 @@ python examples/api_demo.py
 
 # Web UI demo
 python examples/web_ui_demo.py
+
+# Pinecone integration demo
+python examples/pinecone_memory_demo.py
 ```
 
 ### Run Tests

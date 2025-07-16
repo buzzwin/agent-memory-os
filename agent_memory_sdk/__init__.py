@@ -10,6 +10,7 @@ __author__ = "Agent Memory OS Team"
 
 from .models import MemoryEntry, MemoryType
 from .memory import MemoryManager
+from .store import SQLiteStore, PineconeStore, BaseStore, StoreFactory
 
 # LangChain integration
 try:
@@ -65,6 +66,10 @@ __all__ = [
     "MemoryManager", 
     "MemoryEntry", 
     "MemoryType",
+    "SQLiteStore",
+    "PineconeStore", 
+    "BaseStore",
+    "StoreFactory",
     "MemoryChain",
     "MemoryTool",
     "MemoryCallbackHandler", 
