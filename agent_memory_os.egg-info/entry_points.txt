@@ -1,0 +1,3 @@
+[console_scripts]
+agent-memory-api = agent_memory_sdk.api.server:main
+agent-memory-test = run_tests:main

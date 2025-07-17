@@ -1,21 +1,20 @@
 """
-Pinecone vector store backend for Agent Memory OS
-
-Provides semantic search capabilities using Pinecone's vector database.
+Provides vector-based storage using Pinecone for semantic search capabilities.
 """
 
-import json
 import os
+import json
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from pathlib import Path
+import uuid
 
 try:
-    import pinecone
+    # The official package is now 'pinecone', not 'pinecone-client'
+    from pinecone import Pinecone, ServerlessSpec, Index
     PINECONE_AVAILABLE = True
 except ImportError:
     PINECONE_AVAILABLE = False
-    print("Warning: Pinecone not installed. Install with: pip install pinecone-client")
+    print("Warning: Pinecone not installed. Install with: pip install pinecone") # Updated install command
 
 from ..models import MemoryEntry, MemoryType
 from ..utils.embedding_utils import generate_embedding
@@ -24,452 +23,518 @@ from .base_store import BaseStore
 
 class PineconeStore(BaseStore):
     """Pinecone-based vector storage backend for memory entries"""
-    
-    def __init__(self, api_key: str = None, environment: str = None, index_name: str = "agent-memory-os"):
+
+    def __init__(self, api_key: str = None, environment: str = None,
+                 index_name: str = "agent-memory-os", dimension: int = 1024,
+                 metric: str = "cosine", **kwargs):
         """
         Initialize Pinecone store
-        
+
         Args:
             api_key: Pinecone API key (defaults to PINECONE_API_KEY env var)
             environment: Pinecone environment (defaults to PINECONE_ENVIRONMENT env var)
+                         Note: Environment might be less critical for serverless indexes
+                         but still good practice for initial client setup.
             index_name: Name of the Pinecone index
+            dimension: Vector dimension (default 1024, e.g., for llama-text-embed-v2)
+            metric: Distance metric ('cosine', 'euclidean', 'dotproduct')
+            **kwargs: Additional configuration (currently not directly used but kept for flexibility)
         """
         if not PINECONE_AVAILABLE:
-            raise ImportError("Pinecone client not installed. Install with: pip install pinecone-client")
-        
+            raise ImportError("Pinecone client not installed. Install with: pip install pinecone")
+
+        # Get credentials from parameters or environment variables
         self.api_key = api_key or os.getenv("PINECONE_API_KEY")
-        self.environment = environment or os.getenv("PINECONE_ENVIRONMENT")
-        self.index_name = index_name
-        
+        self.environment = environment or os.getenv("PINECONE_ENVIRONMENT") # Retained for older/pod-based usage if needed
+
         if not self.api_key:
             raise ValueError("Pinecone API key is required. Set PINECONE_API_KEY environment variable or pass api_key parameter.")
-        
-        if not self.environment:
-            raise ValueError("Pinecone environment is required. Set PINECONE_ENVIRONMENT environment variable or pass environment parameter.")
-        
-        # Initialize Pinecone with new API
-        self.pc = pinecone.Pinecone(api_key=self.api_key)
-        
-        # Create index if it doesn't exist
+
+        # For Serverless indexes, the 'environment' is largely handled by Pinecone internally
+        # based on your API key and index region. However, keeping it for compatibility
+        # or if using pod-based indexes where it's explicitly part of the connection.
+        # If you exclusively use serverless, the `environment` passed to `Pinecone()`
+        # might not be strictly necessary, but it doesn't hurt.
+
+        self.index_name = index_name
+        self.dimension = dimension
+        self.metric = metric
+
+        # Initialize Pinecone client
+        # In modern Pinecone SDK (v5+), the `Pinecone` class is the main entry point.
+        # The 'environment' parameter might not be strictly necessary for serverless indexes
+        # as the region is defined in the `ServerlessSpec`.
+        self.pc = Pinecone(api_key=self.api_key) # Environment is typically implicitly handled for serverless
+
+        # Ensure index exists
         self._ensure_index_exists()
-        
-        # Get index
-        self.index = self.pc.Index(self.index_name)
-    
+
+        # Get index instance directly.
+        # With serverless, the host is automatically resolved by the SDK.
+        self.index: Index = self.pc.Index(self.index_name)
+
     def _ensure_index_exists(self):
         """Create Pinecone index if it doesn't exist"""
-        if self.index_name not in self.pc.list_indexes().names():
-            print(f"Creating Pinecone index: {self.index_name}")
-            try:
-                # Try the newer model-based approach first
-                try:
-                    self.pc.create_index_for_model(
-                        name=self.index_name,
-                        cloud="aws",
-                        region="us-east-1",
-                        embed={
-                            "model": "llama-text-embed-v2",
-                            "field_map": {"text": "content"}
-                        }
+        try:
+            # Check if index exists
+            existing_indexes = self.pc.list_indexes() # Returns a list of IndexModel objects
+            existing_index_names = [idx.name for idx in existing_indexes]
+
+            if self.index_name not in existing_index_names:
+                print(f"Creating Pinecone index: {self.index_name}")
+
+                # Create index with serverless spec for easier management
+                self.pc.create_index(
+                    name=self.index_name,
+                    dimension=self.dimension,
+                    metric=self.metric,
+                    spec=ServerlessSpec(
+                        cloud="aws", # Example: "aws", "gcp", "azure"
+                        region="us-east-1" # Example: "us-east-1", "us-west-2", "eu-west-1"
                     )
-                    print("✅ Created index with llama-text-embed-v2 model")
-                except Exception as model_error:
-                    print(f"⚠️  Model-based index creation failed: {model_error}")
-                    print("🔄 Falling back to manual dimension specification...")
-                    
-                    # Extract region from environment
-                    region = self._extract_region_from_environment()
-                    
-                    self.pc.create_index(
-                        name=self.index_name,
-                        dimension=1536,  # OpenAI embedding dimension
-                        metric="cosine",
-                        spec=pinecone.ServerlessSpec(
-                            cloud="gcp",
-                            region=region
-                        )
-                    )
-                    print("✅ Created index with manual dimension specification")
-                
+                )
+
                 # Wait for index to be ready
-                import time
-                time.sleep(10)
-            except Exception as e:
-                if "free plan does not support" in str(e):
-                    print(f"❌ Free plan region restriction: {e}")
-                    print("💡 Try upgrading your Pinecone plan or use a different region")
-                    print("   Supported free plan regions: us-east1, us-west1")
-                    print(f"   Your current environment: {self.environment}")
-                    print(f"   Attempted region: {self._extract_region_from_environment()}")
-                    raise
-                elif "NOT_FOUND" in str(e) and "region" in str(e):
-                    print(f"❌ Region not found: {e}")
-                    print(f"💡 Your environment '{self.environment}' maps to region '{self._extract_region_from_environment()}'")
-                    print("   Try using a different environment or check your Pinecone account settings")
-                    raise
-                else:
-                    raise
-    
-    def _extract_region_from_environment(self) -> str:
-        """Extract region from Pinecone environment string"""
-        # Common environment to region mappings
-        env_to_region = {
-            "gcp-starter": "us-east1",
-            "gcp-west1-gcp": "us-west1",
-            "us-east1-gcp": "us-east1",
-            "us-west1-gcp": "us-west1",
-            "us-central1-gcp": "us-central1",
-            "eu-west1-gcp": "eu-west1",
-            "ap-southeast1-gcp": "ap-southeast1"
-        }
-        
-        # Try to map environment to region
-        if self.environment in env_to_region:
-            return env_to_region[self.environment]
-        
-        # If no mapping found, try to extract region from environment string
-        if "west" in self.environment.lower():
-            return "us-west1"
-        elif "central" in self.environment.lower():
-            return "us-central1"
-        elif "east" in self.environment.lower():
-            return "us-east1"
-        else:
-            # Default to us-east1 for free tier
-            print(f"⚠️  Could not determine region from environment '{self.environment}', using us-east1")
-            return "us-east1"
-    
+                print("Waiting for index to be ready...")
+                # The `wait_for_ready` method is preferred for robust initialization
+                self.pc.wait_for_ready(self.index_name)
+                print(f"Pinecone index {self.index_name} is ready.")
+
+            else:
+                print(f"Using existing Pinecone index: {self.index_name}")
+
+        except Exception as e:
+            print(f"Error ensuring Pinecone index exists: {e}")
+            raise
+
     def _memory_to_vector(self, memory: MemoryEntry) -> Dict[str, Any]:
         """Convert MemoryEntry to Pinecone vector format"""
-        # Generate embedding if not present
-        if not memory.embedding:
-            try:
+        # Generate embedding if not present or if it's not a list of floats
+        if not memory.embedding or not (isinstance(memory.embedding, list) and
+                                        all(isinstance(x, (int, float)) for x in memory.embedding)):
+            # Handle potential byte strings from database storage if not properly deserialized
+            if isinstance(memory.embedding, bytes):
+                try:
+                    decoded_embedding = json.loads(memory.embedding.decode('utf-8'))
+                    if isinstance(decoded_embedding, list) and all(isinstance(x, (int, float)) for x in decoded_embedding):
+                        memory.embedding = decoded_embedding
+                    else:
+                        print(f"Warning: Decoded embedding from bytes is not a list of numbers. Re-generating for memory ID: {memory.id}")
+                        memory.embedding = generate_embedding(memory.content)
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    print(f"Warning: Failed to decode embedding from bytes. Re-generating for memory ID: {memory.id}")
+                    memory.embedding = generate_embedding(memory.content)
+            else:
+                print(f"Warning: Memory embedding is not a list of numbers or is missing. Re-generating for memory ID: {memory.id}")
                 memory.embedding = generate_embedding(memory.content)
-            except Exception as e:
-                print(f"Warning: Could not generate embedding: {e}")
-                return None
         
-        # Create metadata
+        # Ensure embedding has the correct dimension
+        if len(memory.embedding) != self.dimension:
+            print(f"Warning: Embedding dimension mismatch for memory ID {memory.id}. Expected {self.dimension}, got {len(memory.embedding)}. Re-generating embedding.")
+            memory.embedding = generate_embedding(memory.content)
+
+
+        # Prepare metadata
         metadata = {
             "content": memory.content,
             "memory_type": memory.memory_type.value,
-            "agent_id": memory.agent_id or "",
-            "session_id": memory.session_id or "",
+            # Pinecone metadata values should be strings, numbers, or booleans.
+            # Convert None to empty string for filterability in Pinecone.
+            "agent_id": memory.agent_id if memory.agent_id is not None else "",
+            "session_id": memory.session_id if memory.session_id is not None else "",
             "timestamp": memory.timestamp.isoformat(),
             "importance": memory.importance,
-            "tags": json.dumps(memory.tags),
-            "last_accessed": memory.last_accessed.isoformat() if memory.last_accessed else "",
-            "metadata": json.dumps(memory.metadata)
+            "tags": json.dumps(memory.tags), # Store tags as JSON string
+            "last_accessed": memory.last_accessed.isoformat() if memory.last_accessed else ""
         }
-        
+        # Add any additional metadata from the MemoryEntry's metadata field
+        if memory.metadata:
+            for key, value in memory.metadata.items():
+                if key not in metadata: # Avoid overwriting core fields
+                    # Pinecone metadata must be JSON serializable primitive types (str, int, float, bool)
+                    if not isinstance(value, (str, int, float, bool)):
+                        # Attempt to JSON serialize complex objects or convert to string
+                        try:
+                            metadata[key] = json.dumps(value)
+                        except TypeError:
+                            metadata[key] = str(value)
+                    else:
+                        metadata[key] = value
+
         return {
             "id": memory.id,
             "values": memory.embedding,
             "metadata": metadata
         }
-    
+
     def _vector_to_memory(self, vector_data: Dict[str, Any]) -> MemoryEntry:
         """Convert Pinecone vector data to MemoryEntry"""
-        metadata = vector_data["metadata"]
-        
+        metadata = vector_data.get("metadata", {})
+
+        # Extract core fields and remove from metadata dictionary
+        content = metadata.pop("content", "")
+        memory_type_str = metadata.pop("memory_type", "episodic")
+        agent_id = metadata.pop("agent_id", None)
+        session_id = metadata.pop("session_id", None)
+        timestamp_str = metadata.pop("timestamp", "")
+        importance = metadata.pop("importance", 5)
+        tags_json = metadata.pop("tags", "[]") # Default to empty JSON array string
+        last_accessed_str = metadata.pop("last_accessed", None)
+
+        # Parse tags from JSON string
+        try:
+            tags = json.loads(tags_json) if tags_json else []
+        except json.JSONDecodeError:
+            print(f"Warning: Could not decode tags JSON: {tags_json}. Defaulting to empty list.")
+            tags = []
+
+        # Parse timestamps from ISO format string
+        try:
+            timestamp = datetime.fromisoformat(timestamp_str) if timestamp_str else datetime.now()
+        except ValueError:
+            print(f"Warning: Could not parse timestamp: {timestamp_str}. Defaulting to current time.")
+            timestamp = datetime.now()
+
+        try:
+            last_accessed = datetime.fromisoformat(last_accessed_str) if last_accessed_str else None
+        except ValueError:
+            print(f"Warning: Could not parse last_accessed timestamp: {last_accessed_str}. Defaulting to None.")
+            last_accessed = None
+
+        # Convert empty strings from Pinecone metadata back to None for agent_id and session_id
+        if agent_id == "":
+            agent_id = None
+        if session_id == "":
+            session_id = None
+        if last_accessed_str == "":
+            last_accessed = None
+
         return MemoryEntry(
             id=vector_data["id"],
-            content=metadata["content"],
-            memory_type=MemoryType(metadata["memory_type"]),
-            agent_id=metadata["agent_id"] if metadata["agent_id"] else None,
-            session_id=metadata["session_id"] if metadata["session_id"] else None,
-            timestamp=datetime.fromisoformat(metadata["timestamp"]),
-            metadata=json.loads(metadata["metadata"]) if metadata["metadata"] else {},
-            embedding=vector_data["values"],
-            importance=float(metadata["importance"]),
-            tags=json.loads(metadata["tags"]) if metadata["tags"] else [],
-            last_accessed=datetime.fromisoformat(metadata["last_accessed"]) if metadata["last_accessed"] else None
+            content=content,
+            memory_type=MemoryType(memory_type_str),
+            agent_id=agent_id,
+            session_id=session_id,
+            timestamp=timestamp,
+            metadata=metadata,  # Remaining items in metadata are custom metadata
+            embedding=vector_data.get("values"), # 'values' might not always be returned in current SDK for all ops
+            importance=importance,
+            tags=tags,
+            last_accessed=last_accessed
         )
-    
+
     def save_memory(self, memory: MemoryEntry) -> bool:
         """
         Save a memory entry to Pinecone
-        
+
         Args:
             memory: MemoryEntry to save
-            
+
         Returns:
             True if successful, False otherwise
         """
         try:
-            # Try model-based upsert first (text-based)
-            try:
-                # For model-based indexes, we need to use the correct format
-                print(f"🔍 Upserting memory with ID: {memory.id}")
-                print(f"   Embedding length: {len(memory.embedding) if memory.embedding else 'None'}")
-                
-                self.index.upsert(
-                    vectors=[{
-                        "id": memory.id,
-                        "values": memory.embedding,  # Use the embedding values
-                        "metadata": {
-                            "content": memory.content,  # Store the original content
-                            "memory_type": memory.memory_type.value,
-                            "agent_id": memory.agent_id or "",
-                            "session_id": memory.session_id or "",
-                            "timestamp": memory.timestamp.isoformat(),
-                            "importance": memory.importance,
-                            "tags": json.dumps(memory.tags),
-                            "last_accessed": memory.last_accessed.isoformat() if memory.last_accessed else "",
-                            "metadata": json.dumps(memory.metadata)
-                        }
-                    }]
-                )
-                print(f"✅ Memory upserted successfully")
-                return True
-            except Exception as model_error:
-                print(f"⚠️  Model-based upsert failed, falling back to vector upsert: {model_error}")
-                
-                # Fall back to vector-based approach
-                vector_data = self._memory_to_vector(memory)
-                if not vector_data:
-                    return False
-                
-                self.index.upsert(vectors=[vector_data])
-                return True
+            # Convert memory to vector format
+            vector_data = self._memory_to_vector(memory)
+
+            # Upsert to Pinecone. Pinecone's upsert handles both inserts and updates based on ID.
+            self.index.upsert(vectors=[vector_data])
+
+            return True
         except Exception as e:
             print(f"Error saving memory to Pinecone: {e}")
             return False
-    
+
     def get_memory(self, memory_id: str) -> Optional[MemoryEntry]:
         """
         Retrieve a memory entry by ID
-        
+
         Args:
             memory_id: ID of the memory to retrieve
-            
+
         Returns:
             MemoryEntry if found, None otherwise
         """
         try:
+            # Fetch from Pinecone
             response = self.index.fetch(ids=[memory_id])
-            # Handle the new Pinecone API response format
-            if hasattr(response, 'vectors') and memory_id in response.vectors:
-                vector_data = response.vectors[memory_id]
+
+            if memory_id in response.vectors:
+                vector_data = response.vectors[memory_id].to_dict() # Convert vector object to dict
                 return self._vector_to_memory(vector_data)
-            elif isinstance(response, dict) and memory_id in response.get("vectors", {}):
-                vector_data = response["vectors"][memory_id]
-                return self._vector_to_memory(vector_data)
+
             return None
         except Exception as e:
             print(f"Error retrieving memory from Pinecone: {e}")
             return None
-    
+
     def search_memories(self, query: str = None, memory_type: Optional[MemoryType] = None,
                        agent_id: Optional[str] = None, session_id: Optional[str] = None,
                        limit: int = 50) -> List[MemoryEntry]:
         """
-        Search for memories with semantic search and filters
-        
+        Search for memories using vector similarity and metadata filters
+
         Args:
             query: Text search in content (semantic search)
             memory_type: Filter by memory type
             agent_id: Filter by agent ID
             session_id: Filter by session ID
             limit: Maximum number of results
-            
+
         Returns:
             List of matching MemoryEntry objects
         """
         try:
-            # Build filter
+            # Build metadata filter
             filter_dict = {}
+
             if memory_type:
                 filter_dict["memory_type"] = memory_type.value
+
             if agent_id:
                 filter_dict["agent_id"] = agent_id
+
             if session_id:
                 filter_dict["session_id"] = session_id
-            
+
+            # Generate embedding for the query
+            query_vector = None
             if query:
-                # Use vector search with generated embedding
-                query_embedding = generate_embedding(query)
-                response = self.index.query(
-                    vector=query_embedding,
-                    filter=filter_dict,
-                    top_k=limit,
-                    include_metadata=True
-                )
+                query_vector = generate_embedding(query)
             else:
-                # Get all vectors with filter - try a simple approach
-                try:
-                    # Try using a simple query to get all memories
-                    response = self.index.query(
-                        vector=[0] * 1024,  # Dummy vector for metadata-only query (1024 for llama-text-embed-v2)
-                        filter=filter_dict,
-                        top_k=limit,
-                        include_metadata=True
-                    )
-                except Exception as dummy_error:
-                    print(f"⚠️  Dummy vector query failed: {dummy_error}")
-                    # Try without any vector (just metadata query)
-                    try:
-                        response = self.index.query(
-                            filter=filter_dict,
-                            top_k=limit,
-                            include_metadata=True
-                        )
-                    except Exception as no_vector_error:
-                        print(f"⚠️  No-vector query failed: {no_vector_error}")
-                        # Last resort: try with a real embedding
-                        dummy_embedding = generate_embedding("test")
-                        response = self.index.query(
-                            vector=dummy_embedding,
-                            filter=filter_dict,
-                            top_k=limit,
-                            include_metadata=True
-                        )
-            
-            # Handle the new Pinecone API response format
-            if hasattr(response, 'matches'):
-                matches = response.matches
-            elif isinstance(response, dict):
-                matches = response.get('matches', [])
-            else:
-                matches = []
-            
-            print(f"🔍 Search response: {len(matches)} matches found")
+                # Pinecone's query requires a vector. If no specific query, use a generic one.
+                # This allows metadata filtering to still function.
+                # For a true "get all" or "get recent N" with filters,
+                # you might need a different strategy depending on index size and filtering needs.
+                query_vector = generate_embedding("default query for all memories") # A generic vector
+
+            # Search in Pinecone
+            response = self.index.query(
+                vector=query_vector,
+                filter=filter_dict if filter_dict else None,
+                top_k=limit,
+                include_metadata=True,
+                include_values=True # Ensure values (embeddings) are returned for _vector_to_memory
+            )
+
+            # Convert results to MemoryEntry objects
             memories = []
-            for i, match in enumerate(matches):
-                # Handle different match formats
-                if hasattr(match, 'id'):
-                    match_id = match.id
-                    match_values = getattr(match, 'values', None)
-                    match_metadata = getattr(match, 'metadata', {})
-                elif isinstance(match, dict):
-                    match_id = match.get("id")
-                    match_values = match.get("values")
-                    match_metadata = match.get("metadata", {})
-                else:
-                    print(f"⚠️  Unknown match format: {type(match)}")
-                    continue
-                
-                print(f"🔍 Processing match {i+1}: {match_id}")
-                print(f"   Metadata keys: {list(match_metadata.keys()) if match_metadata else 'None'}")
-                
+            for match in response.matches:
+                # The match object directly contains id, values, and metadata
                 vector_data = {
-                    "id": match_id,
-                    "values": match_values,
-                    "metadata": match_metadata
+                    "id": match.id,
+                    "values": match.values,
+                    "metadata": match.metadata
                 }
-                try:
-                    memory = self._vector_to_memory(vector_data)
-                    memories.append(memory)
-                    print(f"✅ Successfully converted match {i+1}")
-                except Exception as conv_error:
-                    print(f"❌ Error converting match {i+1}: {conv_error}")
-                    print(f"   Metadata: {match_metadata}")
-            
-            print(f"✅ Converted {len(memories)} memories from search results")
+
+                memory = self._vector_to_memory(vector_data)
+
+                # Add similarity score if available
+                if hasattr(match, 'score'):
+                    memory.metadata['similarity_score'] = match.score
+
+                memories.append(memory)
+
             return memories
         except Exception as e:
             print(f"Error searching memories in Pinecone: {e}")
             return []
-    
+
     def get_timeline(self, agent_id: Optional[str] = None,
                     start_time: Optional[datetime] = None,
                     end_time: Optional[datetime] = None,
                     limit: int = 100) -> List[MemoryEntry]:
         """
         Get chronological timeline of memories
-        
+
         Args:
             agent_id: Filter by agent ID
             start_time: Start of time range
             end_time: End of time range
             limit: Maximum number of results
-            
+
         Returns:
             List of MemoryEntry objects in chronological order
         """
         try:
-            # Build filter
+            # Build metadata filter
             filter_dict = {}
+
             if agent_id:
                 filter_dict["agent_id"] = agent_id
-            
-            # Get all memories with filter
+
+            # Pinecone supports range filtering on string fields (like ISO 8601 timestamps)
+            timestamp_filter = {}
+            if start_time:
+                timestamp_filter["$gte"] = start_time.isoformat()
+            if end_time:
+                timestamp_filter["$lte"] = end_time.isoformat()
+
+            if timestamp_filter:
+                filter_dict["timestamp"] = timestamp_filter
+
+            # Use a dummy query to retrieve relevant vectors for timeline (as query is required)
+            query_embedding = generate_embedding("timeline query for chronological memory retrieval")
+
+            # Fetch more results than 'limit' to allow for sorting and slicing
+            # Pinecone's `top_k` has a maximum of 1000. If more than 1000 memories are needed
+            # for a timeline within a specific filter, consider more advanced pagination
+            # or cursor-based approaches if your data scale demands it.
+            fetch_limit = min(limit * 2, 1000)
+
             response = self.index.query(
-                vector=[0] * 1024,  # Dummy vector for metadata-only query (1024 for llama-text-embed-v2)
-                filter=filter_dict,
-                top_k=1000,  # Get more to filter by time
-                include_metadata=True
+                vector=query_embedding,
+                filter=filter_dict if filter_dict else None,
+                top_k=fetch_limit,
+                include_metadata=True,
+                include_values=True # Ensure values (embeddings) are returned
             )
-            
-            # Handle the new Pinecone API response format
-            if hasattr(response, 'matches'):
-                matches = response.matches
-            elif isinstance(response, dict):
-                matches = response.get('matches', [])
-            else:
-                matches = []
-            
+
+            # Convert to MemoryEntry objects
             memories = []
-            for match in matches:
-                # Handle different match formats
-                if hasattr(match, 'id'):
-                    match_id = match.id
-                    match_values = getattr(match, 'values', None)
-                    match_metadata = getattr(match, 'metadata', {})
-                elif isinstance(match, dict):
-                    match_id = match.get("id")
-                    match_values = match.get("values")
-                    match_metadata = match.get("metadata", {})
-                else:
-                    continue
-                
+            for match in response.matches:
                 vector_data = {
-                    "id": match_id,
-                    "values": match_values,
-                    "metadata": match_metadata
+                    "id": match.id,
+                    "values": match.values,
+                    "metadata": match.metadata
                 }
                 memory = self._vector_to_memory(vector_data)
-                
-                # Apply time filters
-                if start_time and memory.timestamp < start_time:
-                    continue
-                if end_time and memory.timestamp > end_time:
-                    continue
-                
                 memories.append(memory)
-            
-            # Sort by timestamp and limit
-            memories.sort(key=lambda x: x.timestamp)
+
+            # Sort by timestamp (newest first, typical for a timeline)
+            memories.sort(key=lambda x: x.timestamp, reverse=True)
+
             return memories[:limit]
         except Exception as e:
             print(f"Error getting timeline from Pinecone: {e}")
             return []
-    
+
     def delete_memory(self, memory_id: str) -> bool:
         """
         Delete a memory by ID
-        
+
         Args:
             memory_id: ID of the memory to delete
-            
+
         Returns:
             True if successful, False otherwise
         """
         try:
+            # Delete from Pinecone
             self.index.delete(ids=[memory_id])
             return True
         except Exception as e:
             print(f"Error deleting memory from Pinecone: {e}")
             return False
-    
-    def get_all_memories(self, limit: int = 10000) -> List[MemoryEntry]:
+
+    def get_all_memories(self, limit: int = 1000) -> List[MemoryEntry]:
         """
-        Get all memories in the system
-        
+        Get all memories in the system (up to the Pinecone top_k limit).
+        Note: Retrieving truly "all" memories from a large Pinecone index can be inefficient
+        and might require pagination using `list_ids` and then `fetch` in batches,
+        or more complex scan operations not directly exposed by a single `query`.
+        This implementation uses a generic query and might not return truly "all" memories
+        if the index is very large and the generic query doesn't cover all vector space.
+
         Args:
-            limit: Maximum number of memories to retrieve
-            
+            limit: Maximum number of memories to retrieve (Pinecone's top_k limit applies, max 1000).
+
         Returns:
-            List of all MemoryEntry objects
+            List of all MemoryEntry objects (up to the limit).
         """
-        return self.search_memories(limit=limit) 
+        try:
+            # Use a generic query to get a broad set of vectors.
+            # This is not a scan; it's still a similarity search with a generic vector.
+            query_embedding = generate_embedding("retrieve all memories from the store")
+
+            # Pinecone's query top_k has a maximum of 1000.
+            response = self.index.query(
+                vector=query_embedding,
+                top_k=min(limit, 1000), # Cap at Pinecone's max top_k
+                include_metadata=True,
+                include_values=True
+            )
+
+            memories = []
+            for match in response.matches:
+                vector_data = {
+                    "id": match.id,
+                    "values": match.values,
+                    "metadata": match.metadata
+                }
+                memory = self._vector_to_memory(vector_data)
+                memories.append(memory)
+
+            return memories
+        except Exception as e:
+            print(f"Error getting all memories from Pinecone: {e}")
+            return []
+
+    def delete_index(self):
+        """Delete the entire Pinecone index (use with caution!)"""
+        try:
+            self.pc.delete_index(self.index_name)
+            print(f"Deleted Pinecone index: {self.index_name}")
+        except Exception as e:
+            print(f"Error deleting Pinecone index: {e}")
+
+    def get_index_stats(self) -> Dict[str, Any]:
+        """Get statistics about the Pinecone index"""
+        try:
+            stats = self.index.describe_index_stats()
+            # The structure of stats.namespaces can be complex,
+            # so we'll simplify for typical use cases.
+            namespace_counts = {ns.name: ns.vector_count for ns in stats.namespaces.values()}
+
+            return {
+                "total_vector_count": stats.total_vector_count,
+                "dimension": stats.dimension,
+                "index_fullness": stats.index_fullness,
+                "namespaces": namespace_counts # Simplified representation
+            }
+        except Exception as e:
+            print(f"Error getting index stats: {e}")
+            return {}
+
+    def get_index_host(self) -> Optional[str]:
+        """Get the host URL for the Pinecone index (useful for performance optimization)"""
+        try:
+            # `describe_index` now returns an `IndexModel` which has a `.host` attribute.
+            index_description = self.pc.describe_index(self.index_name)
+            return index_description.host
+        except Exception as e:
+            print(f"Error getting index host: {e}")
+            return None
+
+    def save_memories_batch(self, memories: List[MemoryEntry], batch_size: int = 100) -> bool:
+        """
+        Save multiple memory entries to Pinecone in batches
+
+        Args:
+            memories: List of MemoryEntry objects to save
+            batch_size: Number of memories to process in each batch
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not memories:
+            return True # Nothing to save
+
+        try:
+            total_memories = len(memories)
+            for i in range(0, total_memories, batch_size):
+                batch = memories[i:i + batch_size]
+                vectors = [self._memory_to_vector(memory) for memory in batch]
+
+                # Upsert batch to Pinecone
+                self.index.upsert(vectors=vectors)
+
+                # Print progress
+                current_batch_num = (i // batch_size) + 1
+                total_batches = (total_memories + batch_size - 1) // batch_size
+                print(f"Saved batch {current_batch_num}/{total_batches} ({len(batch)} memories)")
+
+            return True
+        except Exception as e:
+            print(f"Error saving memories batch to Pinecone: {e}")
+            return False

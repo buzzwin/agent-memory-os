@@ -4,6 +4,8 @@ setup.py
 agent_memory_os.egg-info/PKG-INFO
 agent_memory_os.egg-info/SOURCES.txt
 agent_memory_os.egg-info/dependency_links.txt
+agent_memory_os.egg-info/entry_points.txt
+agent_memory_os.egg-info/not-zip-safe
 agent_memory_os.egg-info/requires.txt
 agent_memory_os.egg-info/top_level.txt
 agent_memory_sdk/__init__.py
@@ -28,9 +30,15 @@ agent_memory_sdk/integrations/langgraph/memory_node.py
 agent_memory_sdk/integrations/langgraph/memory_state.py
 agent_memory_sdk/integrations/langgraph/memory_tool_node.py
 agent_memory_sdk/store/__init__.py
+agent_memory_sdk/store/base_store.py
+agent_memory_sdk/store/pinecone_store.py
+agent_memory_sdk/store/postgresql_store.py
 agent_memory_sdk/store/sqlite_store.py
+agent_memory_sdk/store/store_factory.py
 agent_memory_sdk/utils/__init__.py
 agent_memory_sdk/utils/embedding_utils.py
 agent_memory_sdk/utils/time_utils.py
 tests/__init__.py
+tests/test_integrations.py
 tests/test_memory.py
+tests/test_regression.py

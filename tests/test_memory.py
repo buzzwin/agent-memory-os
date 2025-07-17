@@ -143,12 +143,12 @@ class TestMemoryManager:
     
     def test_memory_manager_initialization(self):
         """Test memory manager initialization"""
-        manager = MemoryManager()
+        manager = MemoryManager(store_type="sqlite")
         assert manager.store_type == "sqlite"
     
     def test_add_memory(self):
         """Test adding memory through manager"""
-        manager = MemoryManager()
+        manager = MemoryManager(store_type="sqlite")
         
         memory = manager.add_memory(
             content="Test memory",
@@ -162,7 +162,7 @@ class TestMemoryManager:
     
     def test_search_memory(self):
         """Test memory search through manager"""
-        manager = MemoryManager()
+        manager = MemoryManager(store_type="sqlite")
         
         # Add some memories
         manager.add_memory("Python is a programming language", MemoryType.SEMANTIC)

@@ -1,10 +1,18 @@
 Metadata-Version: 2.4
 Name: agent-memory-os
 Version: 0.1.0
-Summary: A memory layer for AI agents — providing persistent, semantic + episodic memory
-Author: Agent Memory OS Team
+Summary: A comprehensive memory layer for AI agents providing persistent, semantic + episodic memory
+Home-page: https://github.com/your-org/agent-memory-os
+Author: Agent Memory OS Contributors
+Author-email: contributors@agent-memory-os.dev
+Project-URL: Bug Tracker, https://github.com/your-org/agent-memory-os/issues
+Project-URL: Documentation, https://github.com/your-org/agent-memory-os#readme
+Project-URL: Source Code, https://github.com/your-org/agent-memory-os
+Keywords: ai,agents,memory,langchain,langgraph,pinecone,postgresql,vector-search,semantic-memory,episodic-memory,machine-learning,artificial-intelligence
+Platform: any
 Classifier: Development Status :: 4 - Beta
 Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: OS Independent
 Classifier: Programming Language :: Python :: 3
@@ -13,27 +21,89 @@ Classifier: Programming Language :: Python :: 3.9
 Classifier: Programming Language :: Python :: 3.10
 Classifier: Programming Language :: Python :: 3.11
 Classifier: Programming Language :: Python :: 3.12
-Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Software Development :: Libraries :: Application Frameworks
+Classifier: Framework :: FastAPI
+Classifier: Framework :: LangChain
+Classifier: Framework :: LangGraph
 Requires-Python: >=3.8
 Description-Content-Type: text/markdown
 License-File: LICENSE
-Requires-Dist: numpy
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: numpy>=1.21.0
 Requires-Dist: langchain>=0.1.0
+Requires-Dist: langchain-community>=0.0.10
+Requires-Dist: langchain-core>=0.1.0
 Requires-Dist: langgraph>=0.5.0
 Requires-Dist: fastapi>=0.104.0
 Requires-Dist: uvicorn[standard]>=0.24.0
-Requires-Dist: pydantic>=2.0.0
 Requires-Dist: aiohttp>=3.8.0
 Requires-Dist: requests>=2.28.0
+Requires-Dist: pinecone-client>=2.2.0
+Requires-Dist: psycopg2-binary>=2.9.0
 Requires-Dist: pytest>=7.0.0
-Requires-Dist: black>=22.0.0
-Requires-Dist: flake8>=5.0.0
+Requires-Dist: pytest-asyncio>=0.21.0
+Requires-Dist: pytest-cov>=4.0.0
+Requires-Dist: black>=23.0.0
+Requires-Dist: flake8>=6.0.0
 Requires-Dist: mypy>=1.0.0
+Requires-Dist: bandit>=1.7.0
+Requires-Dist: safety>=2.0.0
+Requires-Dist: pydocstyle>=6.0.0
+Requires-Dist: build>=0.10.0
+Requires-Dist: twine>=4.0.0
+Requires-Dist: wheel>=0.40.0
+Provides-Extra: langchain
+Requires-Dist: langchain>=0.1.0; extra == "langchain"
+Requires-Dist: langchain-community>=0.0.10; extra == "langchain"
+Requires-Dist: langchain-core>=0.1.0; extra == "langchain"
+Provides-Extra: langgraph
+Requires-Dist: langgraph>=0.0.20; extra == "langgraph"
+Provides-Extra: pinecone
+Requires-Dist: pinecone-client>=2.2.0; extra == "pinecone"
+Provides-Extra: postgresql
+Requires-Dist: psycopg2-binary>=2.9.0; extra == "postgresql"
+Provides-Extra: api
+Requires-Dist: fastapi>=0.100.0; extra == "api"
+Requires-Dist: uvicorn[standard]>=0.20.0; extra == "api"
+Requires-Dist: httpx>=0.24.0; extra == "api"
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.21.0; extra == "dev"
+Requires-Dist: black>=23.0.0; extra == "dev"
+Requires-Dist: flake8>=6.0.0; extra == "dev"
+Requires-Dist: mypy>=1.0.0; extra == "dev"
+Requires-Dist: langchain>=0.1.0; extra == "dev"
+Requires-Dist: langchain-community>=0.0.10; extra == "dev"
+Requires-Dist: langchain-core>=0.1.0; extra == "dev"
+Requires-Dist: langgraph>=0.0.20; extra == "dev"
+Requires-Dist: pinecone-client>=2.2.0; extra == "dev"
+Requires-Dist: psycopg2-binary>=2.9.0; extra == "dev"
+Requires-Dist: fastapi>=0.100.0; extra == "dev"
+Requires-Dist: uvicorn[standard]>=0.20.0; extra == "dev"
+Requires-Dist: httpx>=0.24.0; extra == "dev"
+Provides-Extra: all
+Requires-Dist: langchain>=0.1.0; extra == "all"
+Requires-Dist: langchain-community>=0.0.10; extra == "all"
+Requires-Dist: langchain-core>=0.1.0; extra == "all"
+Requires-Dist: langgraph>=0.0.20; extra == "all"
+Requires-Dist: pinecone-client>=2.2.0; extra == "all"
+Requires-Dist: psycopg2-binary>=2.9.0; extra == "all"
+Requires-Dist: fastapi>=0.100.0; extra == "all"
+Requires-Dist: uvicorn[standard]>=0.20.0; extra == "all"
+Requires-Dist: httpx>=0.24.0; extra == "all"
 Dynamic: author
+Dynamic: author-email
 Dynamic: classifier
 Dynamic: description
 Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: keywords
 Dynamic: license-file
+Dynamic: platform
+Dynamic: project-url
+Dynamic: provides-extra
 Dynamic: requires-dist
 Dynamic: requires-python
 Dynamic: summary
@@ -170,9 +240,11 @@ This results in fragile systems and poor user experience.
 
 #### Semantic Search
 
-- ⚠️ Basic text-based search implemented
-- ⚠️ Embedding generation exists but uses simple hash-based approach
-- ⚠️ No vector similarity search yet (embeddings stored but not used for search)
+- ✅ **Vector similarity search** with Pinecone integration
+- ✅ **Model-based embeddings** using `llama-text-embed-v2` (1024 dimensions)
+- ✅ **High-quality semantic search** across all memory types
+- ✅ **Fallback text search** for SQLite backend
+- ✅ **Cosine similarity** calculations for relevance scoring
 
 #### LangChain Integration
 
@@ -196,9 +268,22 @@ This results in fragile systems and poor user experience.
 
 #### Storage Backends
 
-- ❌ PostgreSQL backend
+- ✅ **Pinecone Integration** - Vector database with semantic search
+  - ✅ Model-based embeddings with `llama-text-embed-v2`
+  - ✅ 1024-dimensional vectors for high-quality semantic search
+  - ✅ Automatic index creation and management
+  - ✅ Cross-session memory persistence
+  - ✅ Full CRUD operations with metadata
+- ✅ **PostgreSQL Integration** - Production-ready relational database
+  - ✅ Full-text search with PostgreSQL's tsvector/tsquery
+  - ✅ JSONB support for flexible metadata storage
+  - ✅ ACID compliance and transaction support
+  - ✅ High-performance indexing and querying
+  - ✅ Scalable for large memory datasets
+- ✅ **Store Factory** - Adapter pattern for multiple backends
+- ✅ **Auto-detection** - Automatically chooses SQLite, PostgreSQL, or Pinecone
 - ❌ Redis backend
-- ❌ Vector databases (Pinecone, Weaviate, etc.)
+- ❌ Other vector databases (Weaviate, Qdrant, etc.)
 - ❌ Cloud storage options
 
 #### Advanced Memory Features
@@ -235,7 +320,10 @@ agent-memory-os/
 │   ├── models.py              # Data models (MemoryEntry, MemoryType)
 │   ├── store/                 # Storage backends
 │   │   ├── __init__.py
-│   │   └── sqlite_store.py    # SQLite storage implementation
+│   │   ├── base_store.py      # Abstract base class
+│   │   ├── sqlite_store.py    # SQLite storage implementation
+│   │   ├── pinecone_store.py  # Pinecone vector storage
+│   │   └── store_factory.py   # Store factory for backend selection
 │   ├── utils/                 # Utility functions
 │   │   ├── __init__.py
 │   │   ├── embedding_utils.py # Embedding generation and similarity
@@ -291,11 +379,23 @@ pip install -r requirements.txt
 ### Run the REST API Server
 
 ```bash
+# Run from the project root directory
 python run_api.py --host 127.0.0.1 --port 8000
 ```
 
-- Docs: http://127.0.0.1:8000/docs
-- Health: http://127.0.0.1:8000/health
+**API Endpoints:**
+
+- 📚 **Docs**: http://127.0.0.1:8000/docs (Interactive API documentation)
+- 🔍 **ReDoc**: http://127.0.0.1:8000/redoc (Alternative API docs)
+- ❤️ **Health**: http://127.0.0.1:8000/health (Server status)
+- 🎨 **Web UI**: http://127.0.0.1:8000 (Interactive web interface)
+
+**Features:**
+
+- Full CRUD operations for memories
+- Semantic search and filtering
+- Agent-specific endpoints
+- Real-time statistics and health monitoring
 
 ### Use the Python Client
 
@@ -336,32 +436,116 @@ python examples/api_demo.py
 ### Try the Web UI Demo
 
 ```bash
+# Run from any directory - the script will automatically find the project root
 python examples/web_ui_demo.py
 ```
 
 This will:
-1. Create sample memory data
-2. Launch the web UI server
-3. Open your browser to http://localhost:8000
+
+1. **Create sample memory data** with various types and agents
+2. **Launch the web UI server** at http://localhost:8000
+3. **Open your browser** automatically to the web interface
+4. **Show interactive features** like search, filtering, and memory management
+
+**Web UI Features:**
+
+- 📊 Real-time memory statistics and breakdowns
+- 🔍 Interactive search and filtering by type, agent, and importance
+- 📝 Create and delete memories directly from the interface
+- 📱 Responsive design for desktop and mobile
+- 🔄 Auto-refresh and live updates
 
 ### Basic Usage (SDK)
 
 ```python
 from agent_memory_sdk import MemoryManager, MemoryType
 
-# Initialize memory manager
+# Initialize memory manager (auto-detects SQLite or Pinecone)
 memory_manager = MemoryManager()
 
 # Add memories
 memory_manager.add_memory(
     content="User prefers Python programming",
     memory_type=MemoryType.SEMANTIC,
-    agent_id="my_agent"
+    agent_id="my_agent",
+    importance=8.0,
+    tags=["preference", "programming"]
 )
 
-# Search memories
+# Search memories (semantic search with Pinecone, text search with SQLite)
 results = memory_manager.search_memory("Python")
 ```
+
+### Storage Backends
+
+The system supports multiple storage backends:
+
+#### SQLite (Default - Local)
+
+```python
+# Local SQLite storage
+memory_manager = MemoryManager(store_type="sqlite", db_path="memories.db")
+```
+
+#### Pinecone (Cloud - Vector Search)
+
+```bash
+# Set environment variables
+export PINECONE_API_KEY="your-api-key"
+export PINECONE_ENVIRONMENT="your-environment"
+```
+
+```python
+# Pinecone vector storage with semantic search
+memory_manager = MemoryManager(store_type="pinecone", index_name="my-memories")
+```
+
+#### PostgreSQL (Production - Relational Database)
+
+```bash
+# Set environment variables
+export POSTGRESQL_HOST="localhost"
+export POSTGRESQL_PORT="5432"
+export POSTGRESQL_DATABASE="agent_memory"
+export POSTGRESQL_USER="postgres"
+export POSTGRESQL_PASSWORD="your_password"
+
+# OR use connection string
+export POSTGRESQL_CONNECTION_STRING="postgresql://user:pass@host:port/db"
+```
+
+```python
+# PostgreSQL storage with full-text search
+memory_manager = MemoryManager(store_type="postgresql")
+
+# Or with explicit connection parameters
+memory_manager = MemoryManager(
+    store_type="postgresql",
+    host="localhost",
+    port="5432",
+    database="agent_memory",
+    user="postgres",
+    password="your_password"
+)
+```
+
+### Try the Pinecone Demo
+
+```bash
+# Set your Pinecone credentials
+export PINECONE_API_KEY="your-api-key"
+export PINECONE_ENVIRONMENT="your-environment"
+
+# Run the demo
+python examples/pinecone_memory_demo.py
+```
+
+**Features demonstrated:**
+
+- Model-based embeddings with `llama-text-embed-v2`
+- High-quality semantic search
+- Memory persistence across sessions
+- Comparison between SQLite and Pinecone backends
 
 ### LangChain Integration
 
@@ -461,7 +645,9 @@ result = tool_node.invoke(state)
 ### Run Demos
 
 ```bash
-# Core memory demo
+# All demos can be run from any directory - they'll automatically find the project root
+
+# Core memory demo (SQLite backend)
 python examples/crewai_memory_demo.py
 
 # LangChain integration demo
@@ -470,11 +656,40 @@ python examples/langchain_memory_demo.py
 # LangGraph integration demo
 python examples/langgraph_memory_demo.py
 
-# REST API demo
+# REST API demo (tests HTTP client and async client)
 python examples/api_demo.py
 
-# Web UI demo
+# Web UI demo (creates sample data and launches web interface)
 python examples/web_ui_demo.py
+
+# Pinecone integration demo (requires Pinecone credentials)
+python examples/pinecone_memory_demo.py
+
+# PostgreSQL integration demo (requires PostgreSQL server)
+python examples/postgresql_memory_demo.py
+```
+
+**Demo Features:**
+
+- 🧠 **Core Demo**: Basic memory operations with SQLite
+- 🔗 **LangChain Demo**: Memory-aware chains, tools, and agents
+- 📊 **LangGraph Demo**: Memory integration with workflows and state
+- 🌐 **API Demo**: HTTP client, async client, and REST endpoints
+- 🎨 **Web UI Demo**: Interactive web interface with sample data
+- 🌲 **Pinecone Demo**: Vector search with semantic embeddings
+- 🐘 **PostgreSQL Demo**: Full-text search with relational database
+
+### Debug and Maintenance Tools
+
+```bash
+# Debug Pinecone configuration
+python debug_pinecone.py
+
+# Debug Pinecone search functionality
+python debug_pinecone_search.py
+
+# Clean up old Pinecone indexes
+python cleanup_pinecone.py
 ```
 
 ### Run Tests
@@ -483,11 +698,43 @@ python examples/web_ui_demo.py
 python -m pytest tests/ -v
 ```
 
+### Troubleshooting
+
+**Common Issues:**
+
+1. **"run_api.py not found" error**
+
+   - ✅ **Fixed**: All demo scripts now automatically find the project root
+   - Run demos from any directory: `python examples/web_ui_demo.py`
+
+2. **Pinecone connection errors**
+
+   - Set environment variables: `export PINECONE_API_KEY="your-key"`
+   - Use supported environment: `export PINECONE_ENVIRONMENT="gcp-starter"`
+   - Run debug script: `python debug_pinecone.py`
+
+3. **PostgreSQL connection errors**
+
+   - Install driver: `pip install psycopg2-binary`
+   - Set environment variables: `export POSTGRESQL_HOST="localhost"`
+   - Create database: `createdb agent_memory`
+   - Check connection: `psql -h localhost -U postgres -d agent_memory`
+
+4. **API server startup errors**
+
+   - ✅ **Fixed**: MemoryManager initialization now properly handles store types
+   - Ensure you're in the project root: `python run_api.py --host 127.0.0.1 --port 8000`
+
+5. **Memory search returning 0 results**
+   - Check if memories were saved successfully
+   - Run debug script: `python debug_pinecone_search.py`
+   - Clean up old indexes: `python cleanup_pinecone.py`
+
 ---
 
 ## 🔗 Status
 
-🚀 **MVP Complete + Full Framework Integration** — Core memory system is working with SQLite storage, comprehensive LangChain, LangGraph, and REST API integrations, and persistent memory across sessions.
+🚀 **MVP Complete + Full Framework Integration + Vector Search** — Core memory system is working with SQLite and Pinecone storage, comprehensive LangChain, LangGraph, and REST API integrations, persistent memory across sessions, and high-quality semantic search capabilities.
 
 **Current Capabilities:**
 
@@ -500,11 +747,16 @@ python -m pytest tests/ -v
 - ✅ Timeline and semantic search
 - ✅ Cross-session memory persistence
 - ✅ Agent-specific memory isolation
+- ✅ **Vector similarity search** with Pinecone integration
+- ✅ **Model-based embeddings** for high-quality semantic search
+- ✅ **Robust demo scripts** that work from any directory
+- ✅ **Comprehensive debugging tools** for troubleshooting
 
 **Next Milestones:**
 
-1. Implement vector similarity search with proper embedding models
-2. Add CrewAI integration
+1. Add CrewAI integration
+2. Implement memory compression and summarization
+3. Add memory importance scoring
 
 ---
 
