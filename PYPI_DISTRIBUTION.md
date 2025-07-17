@@ -151,7 +151,7 @@ Core dependencies are in `requirements.txt`. Optional dependencies are defined i
 extras_require = {
     'langchain': ['langchain>=0.1.0', ...],
     'langgraph': ['langgraph>=0.0.20'],
-    'pinecone': ['pinecone-client>=2.2.0'],
+    'pinecone': ['pinecone>=7.0.0'],
     'postgresql': ['psycopg2-binary>=2.9.0'],
     'api': ['fastapi>=0.100.0', ...],
     'all': [...],  # All optional dependencies

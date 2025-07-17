@@ -50,7 +50,7 @@ def check_pinecone_conflict():
             print("1. Remove the old pinecone-client package:")
             print("   pip uninstall pinecone-client -y")
             print("\n2. Install the new pinecone package:")
-            print("   pip install pinecone")
+            print("   pip install pinecone>=7.0.0")
             print("\n3. If you are using requirements.txt, update it to use pinecone instead of pinecone-client")
             sys.exit(1)
         else:

@@ -159,7 +159,7 @@ class TestRunner:
         
         dependencies = {
             'Core': ['pydantic', 'sqlite3'],
-            'Optional': ['pinecone-client', 'psycopg2-binary', 'fastapi', 'uvicorn'],
+            'Optional': ['pinecone', 'psycopg2-binary', 'fastapi', 'uvicorn'],
             'Testing': ['pytest', 'pytest-asyncio'],
             'LangChain': ['langchain', 'langchain-community', 'langchain-core'],
             'LangGraph': ['langgraph']

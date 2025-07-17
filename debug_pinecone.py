@@ -26,10 +26,10 @@ def debug_pinecone_config():
     # Try to import pinecone
     try:
         import pinecone
-        print("✅ Pinecone client installed")
+        print("✅  installed")
     except ImportError:
         print("❌ Pinecone client not installed")
-        print("   Install with: pip install pinecone-client")
+        print("   Install with: pip install pinecone>=7.0.0")
         return
     
     # Try to initialize Pinecone

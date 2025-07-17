@@ -14,7 +14,7 @@ try:
     PINECONE_AVAILABLE = True
 except ImportError:
     PINECONE_AVAILABLE = False
-    print("Warning: Pinecone not installed. Install with: pip install pinecone") # Updated install command
+    print("Warning: Pinecone not installed. Install with: pip install pinecone>=7.0.0") # Updated install command
 
 from ..models import MemoryEntry, MemoryType
 from ..utils.embedding_utils import generate_embedding
@@ -41,7 +41,7 @@ class PineconeStore(BaseStore):
             **kwargs: Additional configuration (currently not directly used but kept for flexibility)
         """
         if not PINECONE_AVAILABLE:
-            raise ImportError("Pinecone client not installed. Install with: pip install pinecone")
+            raise ImportError("Pinecone client not installed. Install with: pip install pinecone>=7.0.0")
 
         # Get credentials from parameters or environment variables
         self.api_key = api_key or os.getenv("PINECONE_API_KEY")
@@ -260,7 +260,12 @@ class PineconeStore(BaseStore):
             response = self.index.fetch(ids=[memory_id])
 
             if memory_id in response.vectors:
-                vector_data = response.vectors[memory_id].to_dict() # Convert vector object to dict
+                vector_obj = response.vectors[memory_id]
+                vector_data = {
+                    "id": memory_id,
+                    "values": vector_obj.values,
+                    "metadata": vector_obj.metadata
+                }
                 return self._vector_to_memory(vector_data)
 
             return None
@@ -484,7 +489,10 @@ class PineconeStore(BaseStore):
             stats = self.index.describe_index_stats()
             # The structure of stats.namespaces can be complex,
             # so we'll simplify for typical use cases.
-            namespace_counts = {ns.name: ns.vector_count for ns in stats.namespaces.values()}
+            namespace_counts = {}
+            if hasattr(stats, 'namespaces') and stats.namespaces:
+                for ns_name, ns_data in stats.namespaces.items():
+                    namespace_counts[ns_name] = ns_data.vector_count
 
             return {
                 "total_vector_count": stats.total_vector_count,
@@ -501,7 +509,7 @@ class PineconeStore(BaseStore):
         try:
             # `describe_index` now returns an `IndexModel` which has a `.host` attribute.
             index_description = self.pc.describe_index(self.index_name)
-            return index_description.host
+            return getattr(index_description, 'host', None)
         except Exception as e:
             print(f"Error getting index host: {e}")
             return None

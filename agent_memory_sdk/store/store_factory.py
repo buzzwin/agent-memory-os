@@ -61,7 +61,7 @@ class StoreFactory:
             try:
                 from pinecone import Pinecone # Re-import to confirm availability
             except ImportError:
-                raise ImportError("Pinecone is selected but 'pinecone' package is not installed. Install with: pip install pinecone")
+                raise ImportError("Pinecone is selected but 'pinecone' package is not installed. Install with: pip install pinecone>=7.0.0")
 
             api_key = kwargs.get("api_key", os.getenv("PINECONE_API_KEY")) # Get from kwargs or env
             environment = kwargs.get("environment", os.getenv("PINECONE_ENVIRONMENT")) # Get from kwargs or env

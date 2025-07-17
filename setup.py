@@ -40,7 +40,7 @@ extras_require = {
         'langgraph>=0.0.20',
     ],
     'pinecone': [
-        'pinecone-client>=2.2.0',
+        'pinecone>=7.0.0',
     ],
     'postgresql': [
         'psycopg2-binary>=2.9.0',
@@ -62,7 +62,7 @@ extras_require = {
         'langchain-community>=0.0.10',
         'langchain-core>=0.1.0',
         'langgraph>=0.0.20',
-        'pinecone-client>=2.2.0',
+        'pinecone>=7.0.0',
         'psycopg2-binary>=2.9.0',
         'fastapi>=0.100.0',
         'uvicorn[standard]>=0.20.0',

@@ -47,7 +47,7 @@ def demo_pinecone_memory():
         print("   3. Set environment variables:")
         print("      export PINECONE_API_KEY='your-api-key'")
         print("      export PINECONE_ENVIRONMENT='your-environment'")
-        print("   4. Install pinecone-client: pip install pinecone-client")
+        print("   4. Install pinecone: pip install pinecone>=7.0.0")
         return
     
     try:
@@ -182,7 +182,7 @@ def demo_pinecone_memory():
         print(f"\n❌ Error during demo: {e}")
         print("\n💡 Make sure you have:")
         print("   1. Valid Pinecone API key and environment")
-        print("   2. Installed pinecone-client: pip install pinecone-client")
+        print("   2. Installed pinecone: pip install pinecone>=7.0.0")
         print("   3. Created a Pinecone index")
 
 
