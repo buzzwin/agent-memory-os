@@ -23,6 +23,9 @@ pinecone>=7.0.0  # For Pinecone vector store
 # Database dependencies
 psycopg2-binary>=2.9.0  # For PostgreSQL support
 
+# MCP (Model Context Protocol) dependencies
+mcp>=1.0.0  # For MCP server implementation
+
 # Development and testing dependencies
 pytest>=7.0.0
 pytest-asyncio>=0.21.0

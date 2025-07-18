@@ -16,6 +16,11 @@ except ImportError:
     PINECONE_AVAILABLE = False
     print("Warning: Pinecone not installed. Install with: pip install pinecone>=7.0.0") # Updated install command
 
+import sys
+print("Installed packages:", sys.modules.keys())
+print("Pinecone module location:", sys.modules.get("pinecone"))
+
+
 from ..models import MemoryEntry, MemoryType
 from ..utils.embedding_utils import generate_embedding
 from .base_store import BaseStore
@@ -60,24 +65,20 @@ class PineconeStore(BaseStore):
         self.dimension = dimension
         self.metric = metric
 
-        # Initialize Pinecone client
-        # In modern Pinecone SDK (v5+), the `Pinecone` class is the main entry point.
-        # The 'environment' parameter might not be strictly necessary for serverless indexes
-        # as the region is defined in the `ServerlessSpec`.
-        self.pc = Pinecone(api_key=self.api_key) # Environment is typically implicitly handled for serverless
+        # Initialize Pinecone client using the modern pattern
+        self.pc = Pinecone(api_key=self.api_key, environment=self.environment)
 
         # Ensure index exists
         self._ensure_index_exists()
 
-        # Get index instance directly.
-        # With serverless, the host is automatically resolved by the SDK.
+        # Get index instance directly
         self.index: Index = self.pc.Index(self.index_name)
 
     def _ensure_index_exists(self):
         """Create Pinecone index if it doesn't exist"""
         try:
-            # Check if index exists
-            existing_indexes = self.pc.list_indexes() # Returns a list of IndexModel objects
+            # Check if index exists using the modern pattern
+            existing_indexes = self.pc.list_indexes()
             existing_index_names = [idx.name for idx in existing_indexes]
 
             if self.index_name not in existing_index_names:
@@ -96,7 +97,6 @@ class PineconeStore(BaseStore):
 
                 # Wait for index to be ready
                 print("Waiting for index to be ready...")
-                # The `wait_for_ready` method is preferred for robust initialization
                 self.pc.wait_for_ready(self.index_name)
                 print(f"Pinecone index {self.index_name} is ready.")
 

@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "agent-memory-os-sqlite": {
+      "command": "agent-memory-mcp",
+      "args": ["--stdio", "--store-type", "sqlite", "--db-path", "agent_memory.db"],
+      "env": {}
+    },
+    "agent-memory-os-pinecone": {
+      "command": "agent-memory-mcp",
+      "args": ["--stdio", "--store-type", "pinecone", "--index-name", "agent-memory-os"],
+      "env": {
+        "PINECONE_API_KEY": "your-pinecone-api-key-here",
+        "PINECONE_ENVIRONMENT": "your-pinecone-environment-here"
+      }
+    },
+    "agent-memory-os-postgresql": {
+      "command": "agent-memory-mcp",
+      "args": ["--stdio", "--store-type", "postgresql"],
+      "env": {
+        "POSTGRESQL_CONNECTION_STRING": "postgresql://user:password@localhost:5432/agent_memory"
+      }
+    }
+  }
+} 

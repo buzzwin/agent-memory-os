@@ -67,6 +67,9 @@ class StoreFactory:
             environment = kwargs.get("environment", os.getenv("PINECONE_ENVIRONMENT")) # Get from kwargs or env
             index_name = kwargs.get("index_name", "agent-memory-os")
             
+            # Remove index_name from kwargs to avoid duplicate argument
+            kwargs.pop('index_name', None)
+            
             return PineconeStore(
                 api_key=api_key,
                 environment=environment,

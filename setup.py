@@ -50,6 +50,9 @@ extras_require = {
         'uvicorn[standard]>=0.20.0',
         'httpx>=0.24.0',
     ],
+    'mcp': [
+        'mcp>=1.0.0',
+    ],
     'dev': [
         'pytest>=7.0.0',
         'pytest-asyncio>=0.21.0',
@@ -67,6 +70,7 @@ extras_require = {
         'fastapi>=0.100.0',
         'uvicorn[standard]>=0.20.0',
         'httpx>=0.24.0',
+        'mcp>=1.0.0',
     ]
 }
 
@@ -120,6 +124,7 @@ setup(
     entry_points={
         "console_scripts": [
             "agent-memory-api=agent_memory_sdk.api.server:main",
+            "agent-memory-mcp=agent_memory_sdk.integrations.mcp.memory_mcp_server:main",
             "agent-memory-test=run_tests:main",
         ],
     },

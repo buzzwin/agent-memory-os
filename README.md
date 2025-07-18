@@ -126,6 +126,17 @@ This results in fragile systems and poor user experience.
 - ✅ **Auto-refresh** and live updates
 - ✅ **Sample data demo** (`examples/web_ui_demo.py`)
 
+#### MCP (Model Context Protocol) Integration ✅ **NEW - COMPLETE**
+
+- ✅ **Complete MCP server implementation** for Claude Desktop integration
+- ✅ **Memory tools**: search, create, update, delete, and get statistics
+- ✅ **Memory resources**: individual memories and summary overview
+- ✅ **Multiple storage backends**: SQLite, Pinecone, and PostgreSQL support
+- ✅ **CLI interface**: `agent-memory-mcp` command with full configuration options
+- ✅ **stdio and HTTP modes**: Flexible deployment for different MCP clients
+- ✅ **Configuration files**: Ready-to-use configs for Claude Desktop
+- ✅ **Comprehensive demo** (`examples/mcp_server_demo.py`)
+
 ### 🚧 **Partially Implemented**
 
 #### Semantic Search
@@ -235,16 +246,20 @@ agent-memory-os/
 │       │   ├── memory_tool.py         # MemoryTool class
 │       │   ├── memory_callback.py     # MemoryCallbackHandler
 │       │   └── memory_agent.py        # MemoryAwareAgent wrapper
-│       └── langgraph/         # LangGraph integration
+│       ├── langgraph/         # LangGraph integration
+│       │   ├── __init__.py
+│       │   ├── memory_graph.py        # MemoryGraph class
+│       │   ├── memory_state.py        # MemoryState class
+│       │   ├── memory_node.py         # MemoryNode class
+│       │   └── memory_tool_node.py    # MemoryToolNode class
+│       └── mcp/               # MCP (Model Context Protocol) integration
 │           ├── __init__.py
-│           ├── memory_graph.py        # MemoryGraph class
-│           ├── memory_state.py        # MemoryState class
-│           ├── memory_node.py         # MemoryNode class
-│           └── memory_tool_node.py    # MemoryToolNode class
+│           └── memory_mcp_server.py   # MCP server implementation
 ├── examples/                  # Integration examples
 │   ├── crewai_memory_demo.py  # CrewAI integration demo
 │   ├── langchain_memory_demo.py # LangChain integration demo
 │   ├── langgraph_memory_demo.py # LangGraph integration demo
+│   ├── mcp_server_demo.py     # MCP server demo
 │   ├── api_demo.py            # REST API demo (HTTP, client, async)
 │   └── web_ui_demo.py         # Web UI demo with sample data
 ├── tests/                     # Unit tests
@@ -532,6 +547,115 @@ state = {
 result = tool_node.invoke(state)
 ```
 
+### MCP (Model Context Protocol) Integration
+
+Agent Memory OS provides a complete MCP server implementation that allows AI assistants like Claude Desktop to access and manage memories through the standardized Model Context Protocol.
+
+#### Quick Start with Claude Desktop
+
+1. **Install the MCP server:**
+
+```bash
+pip install agent-memory-os[mcp]
+```
+
+2. **Add to Claude Desktop configuration:**
+
+   Copy the configuration from `mcp-server-config.json` to your Claude Desktop config:
+
+   ```json
+   {
+     "mcpServers": {
+       "agent-memory-os": {
+         "command": "agent-memory-mcp",
+         "args": ["--stdio"],
+         "env": {
+           "STORE_TYPE": "sqlite",
+           "DB_PATH": "agent_memory.db"
+         }
+       }
+     }
+   }
+   ```
+
+3. **Restart Claude Desktop** and start using memory capabilities!
+
+#### Available MCP Tools
+
+The MCP server provides these tools to AI assistants:
+
+- **`search_memories`** - Search for memories using semantic search and filters
+- **`create_memory`** - Create new memory entries with metadata
+- **`get_memory_stats`** - Get statistics about stored memories
+- **`delete_memory`** - Delete specific memories by ID
+- **`update_memory`** - Update existing memory content and metadata
+
+#### Available MCP Resources
+
+- **`memory://*`** - Individual memory resources with full metadata
+- **`memory://summary`** - Overview of all stored memories and statistics
+
+#### CLI Usage
+
+```bash
+# Run in stdio mode (for Claude Desktop and other MCP clients)
+agent-memory-mcp --stdio
+
+# Use different storage backends
+agent-memory-mcp --stdio --store-type pinecone --index-name my-memories
+agent-memory-mcp --stdio --store-type postgresql --connection-string "postgresql://user:pass@localhost:5432/memories"
+```
+
+#### Advanced Configuration
+
+For different storage backends, use the advanced configuration:
+
+```json
+{
+  "mcpServers": {
+    "agent-memory-os-pinecone": {
+      "command": "agent-memory-mcp",
+      "args": [
+        "--stdio",
+        "--store-type",
+        "pinecone",
+        "--index-name",
+        "agent-memory-os"
+      ],
+      "env": {
+        "PINECONE_API_KEY": "your-pinecone-api-key-here",
+        "PINECONE_ENVIRONMENT": "your-pinecone-environment-here"
+      }
+    },
+    "agent-memory-os-postgresql": {
+      "command": "agent-memory-mcp",
+      "args": ["--stdio", "--store-type", "postgresql"],
+      "env": {
+        "POSTGRESQL_CONNECTION_STRING": "postgresql://user:password@localhost:5432/agent_memory"
+      }
+    }
+  }
+}
+```
+
+#### Try the MCP Demo
+
+```bash
+# Run the MCP server demo
+python examples/mcp_server_demo.py
+
+# Run in stdio mode for Claude Desktop
+python examples/mcp_server_demo.py --stdio
+```
+
+**MCP Demo Features:**
+
+- 🧠 **Memory Management**: Create, search, and manage memories through MCP
+- 🔗 **Claude Desktop Integration**: Works seamlessly with Claude Desktop
+- 📊 **Multiple Storage Backends**: SQLite, Pinecone, and PostgreSQL support
+- 🌐 **HTTP and stdio modes**: Flexible deployment options
+- 🛠️ **Rich Tool Set**: Complete memory operations through MCP tools
+
 ### Run Demos
 
 ```bash
@@ -545,6 +669,9 @@ python examples/langchain_memory_demo.py
 
 # LangGraph integration demo
 python examples/langgraph_memory_demo.py
+
+# MCP server demo (for Claude Desktop integration)
+python examples/mcp_server_demo.py
 
 # REST API demo (tests HTTP client and async client)
 python examples/api_demo.py
@@ -564,6 +691,7 @@ python examples/postgresql_memory_demo.py
 - 🧠 **Core Demo**: Basic memory operations with SQLite
 - 🔗 **LangChain Demo**: Memory-aware chains, tools, and agents
 - 📊 **LangGraph Demo**: Memory integration with workflows and state
+- 🔌 **MCP Demo**: Claude Desktop integration with memory tools
 - 🌐 **API Demo**: HTTP client, async client, and REST endpoints
 - 🎨 **Web UI Demo**: Interactive web interface with sample data
 - 🌲 **Pinecone Demo**: Vector search with semantic embeddings
@@ -631,6 +759,7 @@ python -m pytest tests/ -v
 - ✅ Persistent memory storage and retrieval
 - ✅ LangChain integration with chains, tools, and agents
 - ✅ LangGraph integration with workflows, state management, and tools
+- ✅ MCP integration for Claude Desktop and other AI assistants
 - ✅ REST API for remote memory access (HTTP, Python, async)
 - ✅ Web UI for memory visualization and management
 - ✅ Memory-aware responses with context

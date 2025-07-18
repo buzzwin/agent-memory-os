@@ -128,6 +128,43 @@ class MemoryMCPServer:
                         "required": ["content", "memory_type"]
                     },
                 ),
+                Tool(
+                    name="get_memory_stats",
+                    description="Get statistics about stored memories",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "memory_type": {"type": "string", "enum": ["episodic", "semantic", "temporal"], "description": "Filter by memory type"},
+                            "agent_id": {"type": "string", "description": "Filter by agent ID"},
+                        },
+                    },
+                ),
+                Tool(
+                    name="delete_memory",
+                    description="Delete a specific memory by ID",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "memory_id": {"type": "string", "description": "ID of the memory to delete"},
+                        },
+                        "required": ["memory_id"]
+                    },
+                ),
+                Tool(
+                    name="update_memory",
+                    description="Update an existing memory",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "memory_id": {"type": "string", "description": "ID of the memory to update"},
+                            "content": {"type": "string", "description": "New memory content"},
+                            "importance": {"type": "number", "description": "New importance score (0-10)"},
+                            "tags": {"type": "array", "items": {"type": "string"}, "description": "New tags"},
+                            "metadata": {"type": "object", "description": "New metadata"},
+                        },
+                        "required": ["memory_id"]
+                    },
+                ),
             ]
             return ListToolsResult(tools=tools)
 
@@ -140,6 +177,12 @@ class MemoryMCPServer:
                     result = await self._search_memories(arguments)
                 elif tool_name == "create_memory":
                     result = await self._create_memory(arguments)
+                elif tool_name == "get_memory_stats":
+                    result = await self._get_memory_stats(arguments)
+                elif tool_name == "delete_memory":
+                    result = await self._delete_memory(arguments)
+                elif tool_name == "update_memory":
+                    result = await self._update_memory(arguments)
                 else:
                     raise ValueError(f"Unknown tool: {tool_name}")
                 return CallToolResult(content=[TextContent(type="text", text=json.dumps(result, indent=2))])
@@ -198,11 +241,165 @@ class MemoryMCPServer:
             "message": "Memory created successfully"
         }
 
-    async def run(self, host: str = "localhost", port: int = 8001):
-        await self.server.run(host=host, port=port)
+    async def _get_memory_stats(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        memory_type = args.get("memory_type")
+        agent_id = args.get("agent_id")
+        memory_type_enum = None
+        if memory_type:
+            memory_type_enum = MemoryType(memory_type)
+        
+        stats = self.memory_manager.get_memory_stats()
+        
+        # Filter stats if needed
+        if memory_type_enum or agent_id:
+            memories = self.memory_manager.get_all_memories()
+            if memory_type_enum:
+                memories = [m for m in memories if m.memory_type == memory_type_enum]
+            if agent_id:
+                memories = [m for m in memories if m.agent_id == agent_id]
+            
+            stats = {
+                "total_memories": len(memories),
+                "memory_types": {},
+                "agents": {},
+                "importance_distribution": {"low": 0, "medium": 0, "high": 0},
+                "recent_activity": {}
+            }
+            
+            for memory in memories:
+                # Count by memory type
+                mem_type = memory.memory_type.value
+                stats["memory_types"][mem_type] = stats["memory_types"].get(mem_type, 0) + 1
+                
+                # Count by agent
+                agent = memory.agent_id or "unknown"
+                stats["agents"][agent] = stats["agents"].get(agent, 0) + 1
+                
+                # Count by importance
+                if memory.importance < 3:
+                    stats["importance_distribution"]["low"] += 1
+                elif memory.importance < 7:
+                    stats["importance_distribution"]["medium"] += 1
+                else:
+                    stats["importance_distribution"]["high"] += 1
+        
+        return {
+            "stats": stats,
+            "filters": {
+                "memory_type": memory_type,
+                "agent_id": agent_id,
+            }
+        }
 
-    def run_stdio(self):
-        asyncio.run(self.server.run_stdio())
+    async def _delete_memory(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        memory_id = args["memory_id"]
+        success = self.memory_manager.delete_memory(memory_id)
+        if success:
+            return {
+                "success": True,
+                "message": f"Memory {memory_id} deleted successfully"
+            }
+        else:
+            return {
+                "success": False,
+                "message": f"Memory {memory_id} not found or could not be deleted"
+            }
+
+    async def _update_memory(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        memory_id = args["memory_id"]
+        content = args.get("content")
+        importance = args.get("importance")
+        tags = args.get("tags")
+        metadata = args.get("metadata")
+        
+        # Get existing memory
+        memory = self.memory_manager.get_memory(memory_id)
+        if not memory:
+            return {
+                "success": False,
+                "message": f"Memory {memory_id} not found"
+            }
+        
+        # Update fields if provided
+        if content is not None:
+            memory.content = content
+        if importance is not None:
+            memory.importance = importance
+        if tags is not None:
+            memory.tags = tags
+        if metadata is not None:
+            memory.metadata = metadata
+        
+        # Save the updated memory
+        success = self.memory_manager.update_memory(memory)
+        if success:
+            return {
+                "success": True,
+                "memory": memory.to_dict(),
+                "message": f"Memory {memory_id} updated successfully"
+            }
+        else:
+            return {
+                "success": False,
+                "message": f"Failed to update memory {memory_id}"
+            }
+
+    async def run(self, host: str = "localhost", port: int = 8001):
+        """Run the MCP server as an HTTP server (not supported in current MCP SDK)"""
+        raise NotImplementedError("HTTP mode not yet supported. Use stdio mode for MCP clients.")
+
+    async def run_stdio(self):
+        """Run the MCP server in stdio mode (for Claude Desktop and other MCP clients)"""
+        from mcp import stdio_server
+        
+        async with stdio_server() as (read_stream, write_stream):
+            await self.server.run(read_stream, write_stream, {})
 
 def create_memory_mcp_server(memory_manager: Optional[MemoryManager] = None, **kwargs) -> MemoryMCPServer:
-    return MemoryMCPServer(memory_manager=memory_manager, **kwargs) 
+    return MemoryMCPServer(memory_manager=memory_manager, **kwargs)
+
+def main():
+    """CLI entry point for the MCP server"""
+    import argparse
+    import sys
+    from pathlib import Path
+    
+    parser = argparse.ArgumentParser(description="Agent Memory OS MCP Server")
+    parser.add_argument("--stdio", action="store_true", help="Run in stdio mode (for Claude Desktop) - this is the default and only mode")
+    parser.add_argument("--store-type", default="sqlite", choices=["sqlite", "pinecone", "postgresql"], 
+                       help="Storage backend type (default: sqlite)")
+    parser.add_argument("--db-path", default="agent_memory.db", help="SQLite database path (default: agent_memory.db)")
+    parser.add_argument("--api-key", help="Pinecone API key (for Pinecone store)")
+    parser.add_argument("--environment", help="Pinecone environment (for Pinecone store)")
+    parser.add_argument("--index-name", default="agent-memory-os", help="Pinecone index name (default: agent-memory-os)")
+    parser.add_argument("--connection-string", help="PostgreSQL connection string")
+    
+    args = parser.parse_args()
+    
+    try:
+        # Initialize memory manager with specified configuration
+        memory_kwargs = {"store_type": args.store_type}
+        
+        if args.store_type == "sqlite":
+            memory_kwargs["db_path"] = args.db_path
+        elif args.store_type == "pinecone":
+            memory_kwargs["api_key"] = args.api_key
+            memory_kwargs["environment"] = args.environment
+            memory_kwargs["index_name"] = args.index_name
+        elif args.store_type == "postgresql":
+            memory_kwargs["connection_string"] = args.connection_string
+        
+        # Create MCP server
+        mcp_server = create_memory_mcp_server(**memory_kwargs)
+        
+        print("🚀 Starting Agent Memory OS MCP Server in stdio mode...", file=sys.stderr)
+        asyncio.run(mcp_server.run_stdio())
+            
+    except KeyboardInterrupt:
+        print("\n👋 MCP server stopped", file=sys.stderr)
+    except Exception as e:
+        print(f"❌ Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main() 

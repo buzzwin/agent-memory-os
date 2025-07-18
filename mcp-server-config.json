@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "agent-memory-os": {
+      "command": "agent-memory-mcp",
+      "args": ["--stdio"],
+      "env": {
+        "STORE_TYPE": "sqlite",
+        "DB_PATH": "agent_memory.db"
+      }
+    }
+  }
+} 
