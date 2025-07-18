@@ -4,9 +4,18 @@ Core memory classes for Agent Memory OS
 Provides MemoryManager for managing episodic, semantic, and temporal memory across AI agents.
 """
 
+import os
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 import sqlite3
+
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # dotenv not installed, continue without it
+    pass
 
 from .models import MemoryEntry, MemoryType
 from .store.store_factory import StoreFactory

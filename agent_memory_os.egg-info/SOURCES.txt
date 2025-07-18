@@ -29,6 +29,8 @@ agent_memory_sdk/integrations/langgraph/memory_graph.py
 agent_memory_sdk/integrations/langgraph/memory_node.py
 agent_memory_sdk/integrations/langgraph/memory_state.py
 agent_memory_sdk/integrations/langgraph/memory_tool_node.py
+agent_memory_sdk/integrations/mcp/__init__.py
+agent_memory_sdk/integrations/mcp/memory_mcp_server.py
 agent_memory_sdk/store/__init__.py
 agent_memory_sdk/store/base_store.py
 agent_memory_sdk/store/pinecone_store.py

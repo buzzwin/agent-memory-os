@@ -5,10 +5,19 @@ Implements the Model Context Protocol to expose memory capabilities
 to MCP-compatible clients like Claude Desktop and other AI assistants.
 """
 
+import os
 import asyncio
 import json
 from typing import Dict, Any, Optional
 from datetime import datetime
+
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # dotenv not installed, continue without it
+    pass
 
 try:
     from mcp.server import Server

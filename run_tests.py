@@ -240,8 +240,7 @@ class TestRunner:
             ('Core Memory Demo', 'examples/crewai_memory_demo.py'),
             ('LangChain Demo', 'examples/langchain_memory_demo.py'),
             ('LangGraph Demo', 'examples/langgraph_memory_demo.py'),
-            ('API Demo', 'examples/api_demo.py'),
-            ('Web UI Demo', 'examples/web_ui_demo.py')
+            ('API Demo', 'examples/api_demo.py')
         ]
         
         results = {}

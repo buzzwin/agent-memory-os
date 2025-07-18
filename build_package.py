@@ -55,12 +55,20 @@ class PackageBuilder:
         print("\n📋 Checking setup.py configuration...")
         
         try:
-            # Try to import setup configuration
-            import setup
+            # Check if setup.py exists and is valid by running check command
+            result = subprocess.run([
+                sys.executable, "setup.py", "check"
+            ], capture_output=True, text=True, cwd=self.project_root)
+            
+            if result.returncode != 0:
+                print(f"❌ setup.py has issues:")
+                print(result.stderr)
+                return False
+            
             print("✅ setup.py is valid")
             return True
         except Exception as e:
-            print(f"❌ setup.py has issues: {e}")
+            print(f"❌ setup.py check failed: {e}")
             return False
     
     def build_package(self):
@@ -104,7 +112,7 @@ class PackageBuilder:
         # Check for wheel and source distribution
         files = list(self.dist_dir.iterdir())
         wheel_files = [f for f in files if f.suffix == '.whl']
-        source_files = [f for f in files if f.suffix == '.tar.gz']
+        source_files = [f for f in files if f.name.endswith('.tar.gz')]
         
         if not wheel_files:
             print("❌ No wheel file found!")
@@ -175,14 +183,14 @@ class PackageBuilder:
         print("\n📊 Validating package metadata...")
         
         try:
-            # Check setup.py metadata
-            import setup
+            # Read setup.py to check for required fields
+            setup_content = (self.project_root / "setup.py").read_text()
             
-            # Basic checks
-            required_fields = ['name', 'version', 'description', 'author']
+            # Basic checks for required fields
+            required_fields = ['name=', 'version=', 'description=', 'author=']
             for field in required_fields:
-                if not hasattr(setup, field) or not getattr(setup, field):
-                    print(f"❌ Missing or empty {field}")
+                if field not in setup_content:
+                    print(f"❌ Missing {field} in setup.py")
                     return False
             
             print("✅ Package metadata is valid")
